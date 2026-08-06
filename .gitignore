@@ -1,0 +1,9 @@
+.gradle/
+build/
+.idea/
+*.iml
+out/
+run/
+.vscode/
+.DS_Store
+.fabric/

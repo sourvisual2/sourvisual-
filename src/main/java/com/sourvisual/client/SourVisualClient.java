@@ -1,10 +1,10 @@
 package com.sourvisual.client;
 
+import com.sourvisual.client.config.ModConfig;
 import com.sourvisual.client.gui.VisualMenuScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -15,6 +15,9 @@ public class SourVisualClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // загружаем конфиг при старте
+        ModConfig.load();
+
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.sourvisual.openmenu",
                 InputUtil.Type.KEYSYM,
@@ -24,15 +27,12 @@ public class SourVisualClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.wasPressed()) {
-                // если меню открыто — закрыть
                 if (client.currentScreen instanceof VisualMenuScreen) {
                     client.setScreen(null);
-                }
-                // если меню закрыто — открыть
-                else if (client.currentScreen == null) {
+                } else if (client.currentScreen == null) {
                     client.setScreen(new VisualMenuScreen());
                 }
             }
         });
     }
-    }
+}

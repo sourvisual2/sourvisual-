@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.sourvisual.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "HitColorMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -6,21 +6,19 @@ import net.minecraft.entity.damage.DamageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public class HitColorMixin {
 
-    @Inject(method = "damage", at = @At("HEAD"))
-    private void onDamage(DamageSource source, float amount, CallbackInfo ci) {
+    @Inject(method = "damage", at = @At("RETURN"))
+    private void onDamage(DamageSource source, float amount,
+                          CallbackInfoReturnable<Boolean> cir) {
         if (!ModConfig.hitColorEnabled) return;
+        if (!cir.getReturnValue()) return;
 
         LivingEntity self = (LivingEntity)(Object)this;
-        // фиолетовый цвет вместо красного
-        // hurtTime сбрасывается автоматически движком
-        self.hurtTime = 10;
-        // меняем оттенок через поле которое рендерер читает
-        // 0x7B5CFA = фиолетовый
-        self.setCustomName(self.getCustomName()); // триггер обновления
+        self.hurtTime    = 10;
+        self.maxHurtTime = 10;
     }
 }

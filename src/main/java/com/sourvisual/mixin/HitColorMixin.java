@@ -1,29 +1,24 @@
 package com.sourvisual.mixin;
 
 import com.sourvisual.client.config.ModConfig;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(LivingEntityRenderer.class)
+@Mixin(LivingEntity.class)
 public class HitColorMixin {
 
-    @Inject(
-        method = "render(Lnet/minecraft/entity/LivingEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
-        at = @At("HEAD")
-    )
-    private void onRenderHead(LivingEntity entity, float yaw, float tickDelta,
-                              MatrixStack matrices, VertexConsumerProvider provider,
-                              int light, CallbackInfo ci) {
+    @Inject(method = "damage", at = @At("RETURN"))
+    private void onDamage(DamageSource source, float amount,
+                          CallbackInfoReturnable<Boolean> cir) {
         if (!ModConfig.hitColorEnabled) return;
-        if (entity.hurtTime <= 0) return;
+        if (!Boolean.TRUE.equals(cir.getReturnValue())) return;
 
-        // подменяем hurtTime чтобы флеш сработал
-        entity.hurtTime = Math.max(entity.hurtTime, 1);
+        LivingEntity self = (LivingEntity)(Object)this;
+        self.hurtTime    = 10;
+        self.maxHurtTime = 10;
     }
 }

@@ -1,5 +1,6 @@
 package com.sourvisual.client.gui;
 
+import com.sourvisual.client.config.ModConfig;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -7,10 +8,10 @@ import net.minecraft.text.Text;
 
 public class VisualMenuScreen extends Screen {
 
-    private static final int WIN_W    = 210;
-    private static final int WIN_H    = 130;
-    private static final int SIDE_W   = 55;
-    private static final int HEADER_H = 18;
+    private static final int WIN_W    = 315;
+    private static final int WIN_H    = 195;
+    private static final int SIDE_W   = 82;
+    private static final int HEADER_H = 27;
     private static final int R        = 4;
 
     private static final int C_BG      = 0xEE0D0D12;
@@ -22,9 +23,6 @@ public class VisualMenuScreen extends Screen {
     private static final int C_ACCENT1 = 0xFF9B6FFF;
     private static final int C_ACCENT2 = 0xFFCC99FF;
     private static final int C_HOVER   = 0xFFCCCCDD;
-
-    // состояние тумблеров
-    private boolean hitColorEnabled = false;
 
     private int wX, wY;
     private TextFieldWidget searchField;
@@ -41,10 +39,10 @@ public class VisualMenuScreen extends Screen {
 
         searchField = new TextFieldWidget(
                 this.textRenderer,
-                wX + SIDE_W + 6,
-                wY + 5,
-                WIN_W - SIDE_W - 20,
-                8,
+                wX + SIDE_W + 8,
+                wY + 8,
+                WIN_W - SIDE_W - 28,
+                11,
                 Text.literal("")
         );
         searchField.setPlaceholder(Text.literal("Search..."));
@@ -57,49 +55,42 @@ public class VisualMenuScreen extends Screen {
     public void render(DrawContext ctx, int mx, int my, float delta) {
         this.renderBackground(ctx, mx, my, delta);
 
-        // фон
         fillRounded(ctx, wX, wY, WIN_W, WIN_H, R, C_BG);
         borderRounded(ctx, wX, wY, WIN_W, WIN_H, R, C_BORDER);
-
-        // сайдбар
         ctx.drawVerticalLine(wX + SIDE_W, wY, wY + WIN_H, C_BORDER);
 
         // заголовок
-        drawScaledText(ctx, "Sour ", wX + 5, wY + 6, C_ACCENT1);
-        int p1w = (int)(this.textRenderer.getWidth("Sour ") * 0.7f);
-        drawScaledText(ctx, "Visual", wX + 5 + p1w, wY + 6, C_ACCENT2);
+        int p1w = this.textRenderer.getWidth("Sour ");
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("Sour "), wX + 8, wY + 9, C_ACCENT1);
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("Visual"), wX + 8 + p1w, wY + 9, C_ACCENT2);
 
-        // разделитель шапки
         ctx.drawHorizontalLine(wX, wX + WIN_W, wY + HEADER_H, C_DIVIDER);
         ctx.drawVerticalLine(wX + SIDE_W, wY, wY + HEADER_H, C_BORDER);
 
         // поиск
-        ctx.fill(wX + SIDE_W + 4, wY + 4, wX + WIN_W - 4, wY + 14, 0x22FFFFFF);
+        ctx.fill(wX + SIDE_W + 5, wY + 6, wX + WIN_W - 5, wY + 19, 0x22FFFFFF);
         searchField.render(ctx, mx, my, delta);
         ctx.drawTextWithShadow(this.textRenderer,
-                Text.literal("⌕"), wX + WIN_W - 10, wY + 6, C_DIM);
+                Text.literal("⌕"), wX + WIN_W - 12, wY + 9, C_DIM);
 
         // категории
-        int catY = wY + HEADER_H + 5;
+        int catY = wY + HEADER_H + 7;
         for (MenuCategory cat : MenuCategory.values()) {
-            boolean hov = mx >= wX + 2 && mx <= wX + SIDE_W - 2
-                       && my >= catY   && my <= catY + 14;
+            boolean hov = mx >= wX + 3 && mx <= wX + SIDE_W - 3
+                       && my >= catY   && my <= catY + 18;
             boolean sel = cat == selected;
-
-            if (sel) ctx.fill(wX + 2, catY, wX + SIDE_W - 2, catY + 14, C_SEL_BG);
-
+            if (sel) ctx.fill(wX + 3, catY, wX + SIDE_W - 3, catY + 18, C_SEL_BG);
             int col = sel ? C_WHITE : (hov ? C_HOVER : C_DIM);
             ctx.drawTextWithShadow(this.textRenderer,
                     Text.literal(iconFor(cat) + " " + cat.label),
-                    wX + 5, catY + 4, col);
-
-            catY += 16;
+                    wX + 7, catY + 5, col);
+            catY += 22;
         }
 
-        // контент правой панели
-        int cx = wX + SIDE_W + 6;
-        int cy = wY + HEADER_H + 6;
-        renderContent(ctx, cx, cy, mx, my);
+        // контент
+        renderContent(ctx, wX + SIDE_W + 8, wY + HEADER_H + 8, mx, my);
     }
 
     private void renderContent(DrawContext ctx, int x, int y, int mx, int my) {
@@ -107,71 +98,60 @@ public class VisualMenuScreen extends Screen {
             case VISUAL -> {
                 drawToggleRow(ctx, x, y,
                         "Hit Color",
-                        "Меняет цвет скина при ударе.",
-                        hitColorEnabled, mx, my);
+                        "Фиолетовый цвет при ударе.",
+                        ModConfig.hitColorEnabled, mx, my, 0);
             }
-            case EFFECTS -> {
-                ctx.drawTextWithShadow(this.textRenderer,
-                        Text.literal("— empty —"), x, y, C_DIM);
-            }
-            case SETTINGS -> {
-                ctx.drawTextWithShadow(this.textRenderer,
-                        Text.literal("— empty —"), x, y, C_DIM);
-            }
+            case EFFECTS -> ctx.drawTextWithShadow(
+                    this.textRenderer, Text.literal("— empty —"), x, y, C_DIM);
+            case SETTINGS -> ctx.drawTextWithShadow(
+                    this.textRenderer, Text.literal("— empty —"), x, y, C_DIM);
         }
     }
 
-    // ── Строка с тумблером ───────────────────────────────────────────────────
     private void drawToggleRow(DrawContext ctx, int x, int y,
                                String title, String desc,
-                               boolean on, int mx, int my) {
-        int rowW = WIN_W - SIDE_W - 10;
-        int rowH = 26;
+                               boolean on, int mx, int my, int index) {
+        int rowW = WIN_W - SIDE_W - 12;
+        int rowH = 34;
+        int ry   = y + index * (rowH + 4);
 
-        // фон строки
-        ctx.fill(x - 2, y, x + rowW, y + rowH, 0x22FFFFFF);
-
-        // текст
+        ctx.fill(x - 2, ry, x + rowW, ry + rowH, 0x22FFFFFF);
         ctx.drawTextWithShadow(this.textRenderer,
-                Text.literal(title), x + 2, y + 4, C_WHITE);
+                Text.literal(title), x + 3, ry + 6, C_WHITE);
         ctx.drawTextWithShadow(this.textRenderer,
-                Text.literal(desc), x + 2, y + 14, C_DIM);
+                Text.literal(desc), x + 3, ry + 18, C_DIM);
 
-        // тумблер
-        int tx = x + rowW - 20;
-        int ty = y + 7;
-        int tw = 18;
-        int th = 10;
-
-        ctx.fill(tx, ty, tx + tw, ty + th, on ? 0xFF5A3FBF : 0xFF333340);
-        borderRounded(ctx, tx, ty, tw, th, 3, C_BORDER);
-        int cx2 = on ? tx + tw - 8 : tx + 2;
-        ctx.fill(cx2, ty + 2, cx2 + 6, ty + 8, on ? C_ACCENT2 : C_DIM);
+        int tx = x + rowW - 24;
+        int ty = ry + 10;
+        ctx.fill(tx, ty, tx + 20, ty + 12, on ? 0xFF5A3FBF : 0xFF333340);
+        borderRounded(ctx, tx, ty, 20, 12, 3, C_BORDER);
+        int cx = on ? tx + 12 : tx + 2;
+        ctx.fill(cx, ty + 2, cx + 8, ty + 10, on ? C_ACCENT2 : C_DIM);
     }
 
-    // ── Клик ─────────────────────────────────────────────────────────────────
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        // переключение категорий
-        int catY = wY + HEADER_H + 5;
+        // категории
+        int catY = wY + HEADER_H + 7;
         for (MenuCategory cat : MenuCategory.values()) {
-            if (mx >= wX + 2 && mx <= wX + SIDE_W - 2
-             && my >= catY   && my <= catY + 14) {
+            if (mx >= wX + 3 && mx <= wX + SIDE_W - 3
+             && my >= catY   && my <= catY + 18) {
                 selected = cat;
                 return true;
             }
-            catY += 16;
+            catY += 22;
         }
 
-        // клик по тумблеру Hit Color
+        // тумблер Hit Color
         if (selected == MenuCategory.VISUAL) {
-            int x  = wX + SIDE_W + 6;
-            int y  = wY + HEADER_H + 6;
-            int rowW = WIN_W - SIDE_W - 10;
-            int tx = x + rowW - 20;
-            int ty = y + 7;
-            if (mx >= tx && mx <= tx + 18 && my >= ty && my <= ty + 10) {
-                hitColorEnabled = !hitColorEnabled;
+            int x    = wX + SIDE_W + 8;
+            int y    = wY + HEADER_H + 8;
+            int rowW = WIN_W - SIDE_W - 12;
+            int tx   = x + rowW - 24;
+            int ty   = y + 10;
+            if (mx >= tx && mx <= tx + 20 && my >= ty && my <= ty + 12) {
+                ModConfig.hitColorEnabled = !ModConfig.hitColorEnabled;
+                ModConfig.save();
                 return true;
             }
         }
@@ -189,15 +169,6 @@ public class VisualMenuScreen extends Screen {
     @Override
     public boolean shouldPause() { return false; }
 
-    // ── Хелперы ──────────────────────────────────────────────────────────────
-    private void drawScaledText(DrawContext ctx, String text, int x, int y, int color) {
-        ctx.getMatrices().push();
-        ctx.getMatrices().scale(0.7f, 0.7f, 1f);
-        ctx.drawTextWithShadow(this.textRenderer, Text.literal(text),
-                (int)(x / 0.7f), (int)(y / 0.7f), color);
-        ctx.getMatrices().pop();
-    }
-
     private void fillRounded(DrawContext ctx, int x, int y, int w, int h, int r, int color) {
         ctx.fill(x + r, y,     x + w - r, y + h,     color);
         ctx.fill(x,     y + r, x + r,     y + h - r, color);
@@ -212,34 +183,34 @@ public class VisualMenuScreen extends Screen {
                             int dx, int dy, int color) {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
-                double dist = Math.sqrt((r-1-i)*(r-1-i) + (r-1-j)*(r-1-j));
+                double dist = Math.sqrt((r-1-i)*(r-1-i)+(r-1-j)*(r-1-j));
                 if (dist < r - 0.5) {
-                    int px = cx + (dx > 0 ? i : r - 1 - i);
-                    int py = cy + (dy > 0 ? j : r - 1 - j);
-                    ctx.fill(px, py, px + 1, py + 1, color);
+                    int px = cx + (dx > 0 ? i : r-1-i);
+                    int py = cy + (dy > 0 ? j : r-1-j);
+                    ctx.fill(px, py, px+1, py+1, color);
                 }
             }
         }
     }
 
     private void borderRounded(DrawContext ctx, int x, int y, int w, int h, int r, int color) {
-        ctx.drawHorizontalLine(x + r, x + w - r, y,     color);
-        ctx.drawHorizontalLine(x + r, x + w - r, y + h, color);
-        ctx.drawVerticalLine(x,     y + r, y + h - r, color);
-        ctx.drawVerticalLine(x + w, y + r, y + h - r, color);
-        drawArc(ctx, x + r,     y + r,     r, color, 180, 270);
-        drawArc(ctx, x + w - r, y + r,     r, color, 270, 360);
-        drawArc(ctx, x + r,     y + h - r, r, color,  90, 180);
-        drawArc(ctx, x + w - r, y + h - r, r, color,   0,  90);
+        ctx.drawHorizontalLine(x+r, x+w-r, y,   color);
+        ctx.drawHorizontalLine(x+r, x+w-r, y+h, color);
+        ctx.drawVerticalLine(x,   y+r, y+h-r, color);
+        ctx.drawVerticalLine(x+w, y+r, y+h-r, color);
+        drawArc(ctx, x+r,   y+r,   r, color, 180, 270);
+        drawArc(ctx, x+w-r, y+r,   r, color, 270, 360);
+        drawArc(ctx, x+r,   y+h-r, r, color,  90, 180);
+        drawArc(ctx, x+w-r, y+h-r, r, color,   0,  90);
     }
 
     private void drawArc(DrawContext ctx, int cx, int cy, int r,
                          int color, int startDeg, int endDeg) {
         for (int deg = startDeg; deg <= endDeg; deg += 2) {
             double rad = Math.toRadians(deg);
-            int px = cx + (int) Math.round((r-1) * Math.cos(rad));
-            int py = cy - (int) Math.round((r-1) * Math.sin(rad));
-            ctx.fill(px, py, px + 1, py + 1, color);
+            int px = cx + (int) Math.round((r-1)*Math.cos(rad));
+            int py = cy - (int) Math.round((r-1)*Math.sin(rad));
+            ctx.fill(px, py, px+1, py+1, color);
         }
     }
 

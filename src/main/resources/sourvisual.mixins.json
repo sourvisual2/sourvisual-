@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
-    "HitColorMixin"
+    "HitColorMixin",
+    "HitOverlayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

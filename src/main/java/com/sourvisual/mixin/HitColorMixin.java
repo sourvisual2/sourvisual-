@@ -7,8 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.lang.reflect.Field;
-
 @Mixin(targets = "net.minecraft.client.render.OverlayTexture")
 public class HitColorMixin {
 
@@ -17,26 +15,14 @@ public class HitColorMixin {
         if (!ModConfig.hitColorEnabled) return;
 
         try {
-            // Получаем поле image через рефлексию
             NativeImage image = null;
-            for (Field f : this.getClass().getSuperclass().getDeclaredFields()) {
+
+            for (java.lang.reflect.Field f : this.getClass().getDeclaredFields()) {
                 f.setAccessible(true);
                 Object val = f.get(this);
-                if (val instanceof NativeImage) {
-                    image = (NativeImage) val;
+                if (val instanceof NativeImage ni) {
+                    image = ni;
                     break;
-                }
-            }
-
-            // Если не нашли через суперкласс — ищем в самом классе
-            if (image == null) {
-                for (Field f : this.getClass().getDeclaredFields()) {
-                    f.setAccessible(true);
-                    Object val = f.get(this);
-                    if (val instanceof NativeImage) {
-                        image = (NativeImage) val;
-                        break;
-                    }
                 }
             }
 
@@ -46,16 +32,13 @@ public class HitColorMixin {
             int g = ModConfig.hitColorG;
             int b = ModConfig.hitColorB;
 
-            // NativeImage хранит в ABGR формате
+            // ABGR формат
             int abgr = (0xFF << 24) | (b << 16) | (g << 8) | r;
 
-            // Верхняя строка (y=0) — цвет удара
             for (int u = 0; u < 16; u++) {
                 image.setColor(u, 0, abgr);
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception ignored) {}
     }
 }

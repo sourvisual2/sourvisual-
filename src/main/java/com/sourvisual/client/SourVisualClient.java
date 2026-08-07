@@ -15,7 +15,6 @@ public class SourVisualClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // загружаем конфиг при старте
         ModConfig.load();
 
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(

@@ -28,6 +28,12 @@ public class VisualMenuScreen extends Screen {
     private TextFieldWidget searchField;
     private MenuCategory selected = MenuCategory.VISUAL;
 
+    // состояние color picker
+    private boolean colorPickerOpen = false;
+
+    // слайдеры RGB — dragging
+    private int draggingSlider = -1; // 0=R 1=G 2=B
+
     public VisualMenuScreen() {
         super(Text.literal("Sour Visual"));
     }
@@ -91,16 +97,17 @@ public class VisualMenuScreen extends Screen {
 
         // контент
         renderContent(ctx, wX + SIDE_W + 8, wY + HEADER_H + 8, mx, my);
+
+        // color picker поверх всего
+        if (colorPickerOpen) {
+            renderColorPicker(ctx, mx, my);
+        }
     }
 
+    // ── Контент панелей ──────────────────────────────────────────────────────
     private void renderContent(DrawContext ctx, int x, int y, int mx, int my) {
         switch (selected) {
-            case VISUAL -> {
-                drawToggleRow(ctx, x, y,
-                        "Hit Color",
-                        "Фиолетовый цвет при ударе.",
-                        ModConfig.hitColorEnabled, mx, my, 0);
-            }
+            case VISUAL -> renderVisual(ctx, x, y, mx, my);
             case EFFECTS -> ctx.drawTextWithShadow(
                     this.textRenderer, Text.literal("— empty —"), x, y, C_DIM);
             case SETTINGS -> ctx.drawTextWithShadow(
@@ -108,29 +115,155 @@ public class VisualMenuScreen extends Screen {
         }
     }
 
-    private void drawToggleRow(DrawContext ctx, int x, int y,
-                               String title, String desc,
-                               boolean on, int mx, int my, int index) {
+    private void renderVisual(DrawContext ctx, int x, int y, int mx, int my) {
         int rowW = WIN_W - SIDE_W - 12;
         int rowH = 34;
-        int ry   = y + index * (rowH + 4);
 
-        ctx.fill(x - 2, ry, x + rowW, ry + rowH, 0x22FFFFFF);
-        ctx.drawTextWithShadow(this.textRenderer,
-                Text.literal(title), x + 3, ry + 6, C_WHITE);
-        ctx.drawTextWithShadow(this.textRenderer,
-                Text.literal(desc), x + 3, ry + 18, C_DIM);
+        // фон строки
+        ctx.fill(x - 2, y, x + rowW, y + rowH, 0x22FFFFFF);
 
-        int tx = x + rowW - 24;
-        int ty = ry + 10;
-        ctx.fill(tx, ty, tx + 20, ty + 12, on ? 0xFF5A3FBF : 0xFF333340);
-        borderRounded(ctx, tx, ty, 20, 12, 3, C_BORDER);
-        int cx = on ? tx + 12 : tx + 2;
-        ctx.fill(cx, ty + 2, cx + 8, ty + 10, on ? C_ACCENT2 : C_DIM);
+        // название + описание
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("Hit Color"), x + 3, y + 6, C_WHITE);
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("Цвет скина при ударе."), x + 3, y + 18, C_DIM);
+
+        // превью текущего цвета (маленький квадрат)
+        int previewColor = 0xFF000000
+                | (ModConfig.hitColorR << 16)
+                | (ModConfig.hitColorG << 8)
+                | ModConfig.hitColorB;
+        ctx.fill(x + rowW - 52, y + 9, x + rowW - 38, y + 23, previewColor);
+        borderRounded(ctx, x + rowW - 52, y + 9, 14, 14, 2, C_BORDER);
+
+        // шестерёнка ⚙
+        boolean gearHov = mx >= x + rowW - 36 && mx <= x + rowW - 24
+                       && my >= y + 9          && my <= y + 23;
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("⚙"),
+                x + rowW - 36, y + 11,
+                gearHov ? C_WHITE : C_DIM);
+
+        // тумблер
+        boolean on = ModConfig.hitColorEnabled;
+        int tx = x + rowW - 20;
+        int ty = y + 11;
+        ctx.fill(tx, ty, tx + 18, ty + 10, on ? 0xFF5A3FBF : 0xFF333340);
+        borderRounded(ctx, tx, ty, 18, 10, 3, C_BORDER);
+        int cx = on ? tx + 10 : tx + 2;
+        ctx.fill(cx, ty + 2, cx + 6, ty + 6, on ? C_ACCENT2 : C_DIM);
     }
 
+    // ── Color Picker ─────────────────────────────────────────────────────────
+    private void renderColorPicker(DrawContext ctx, int mx, int my) {
+        int pw = 160;
+        int ph = 120;
+        int px = wX + (WIN_W - pw) / 2;
+        int py = wY + (WIN_H - ph) / 2;
+
+        // фон пикера
+        fillRounded(ctx, px, py, pw, ph, R, 0xF01A1A24);
+        borderRounded(ctx, px, py, pw, ph, R, C_ACCENT1);
+
+        // заголовок
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("Hit Color"), px + 8, py + 7, C_WHITE);
+
+        // кнопка закрыть
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("✕"), px + pw - 14, py + 7, C_DIM);
+
+        int sy = py + 22; // старт слайдеров
+
+        // слайдеры R G B
+        drawSlider(ctx, px + 8, sy,      pw - 16, "R",
+                ModConfig.hitColorR, 0xFFFF4444, mx, my, 0);
+        drawSlider(ctx, px + 8, sy + 28, pw - 16, "G",
+                ModConfig.hitColorG, 0xFF44FF44, mx, my, 1);
+        drawSlider(ctx, px + 8, sy + 56, pw - 16, "B",
+                ModConfig.hitColorB, 0xFF4444FF, mx, my, 2);
+
+        // превью итогового цвета
+        int previewColor = 0xFF000000
+                | (ModConfig.hitColorR << 16)
+                | (ModConfig.hitColorG << 8)
+                | ModConfig.hitColorB;
+        int prevX = px + 8;
+        int prevY = sy + 88;
+        ctx.fill(prevX, prevY, prevX + pw - 16, prevY + 16, previewColor);
+        borderRounded(ctx, prevX, prevY, pw - 16, 16, 2, C_BORDER);
+
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal("Preview"),
+                prevX + 4, prevY + 4, 0xAAFFFFFF);
+    }
+
+    private void drawSlider(DrawContext ctx, int x, int y, int w,
+                            String label, int value, int trackColor,
+                            int mx, int my, int index) {
+        int trackW = w - 20;
+        int trackX = x + 16;
+        int trackY = y + 6;
+        int trackH = 6;
+
+        // метка
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal(label), x, y + 4, trackColor);
+
+        // трек фон
+        ctx.fill(trackX, trackY, trackX + trackW, trackY + trackH, 0xFF333340);
+        borderRounded(ctx, trackX, trackY, trackW, trackH, 2, C_BORDER);
+
+        // заполненная часть
+        int filled = (int)((value / 255.0f) * trackW);
+        ctx.fill(trackX, trackY, trackX + filled, trackY + trackH, trackColor);
+
+        // ползунок
+        int knobX = trackX + filled - 3;
+        ctx.fill(knobX, trackY - 2, knobX + 6, trackY + trackH + 2, C_WHITE);
+        borderRounded(ctx, knobX, trackY - 2, 6, trackH + 4, 2, C_BORDER);
+
+        // значение
+        ctx.drawTextWithShadow(this.textRenderer,
+                Text.literal(String.valueOf(value)),
+                trackX + trackW + 4, y + 4, C_DIM);
+    }
+
+    // ── Mouse ─────────────────────────────────────────────────────────────────
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
+
+        // color picker открыт — обрабатываем его клики
+        if (colorPickerOpen) {
+            int pw = 160, ph = 120;
+            int px = wX + (WIN_W - pw) / 2;
+            int py = wY + (WIN_H - ph) / 2;
+
+            // кнопка ✕
+            if (mx >= px + pw - 18 && mx <= px + pw - 4
+             && my >= py + 4       && my <= py + 18) {
+                colorPickerOpen = false;
+                ModConfig.save();
+                return true;
+            }
+
+            // клик по слайдерам
+            int sy = py + 22;
+            int[] offsets = {0, 28, 56};
+            for (int i = 0; i < 3; i++) {
+                int trackX = px + 24;
+                int trackW = pw - 40;
+                int trackY = sy + offsets[i] + 3;
+                if (mx >= trackX && mx <= trackX + trackW
+                 && my >= trackY - 4 && my <= trackY + 10) {
+                    draggingSlider = i;
+                    updateSlider(i, (int) mx, trackX, trackW);
+                    return true;
+                }
+            }
+            return true; // поглощаем все клики внутри пикера
+        }
+
         // категории
         int catY = wY + HEADER_H + 7;
         for (MenuCategory cat : MenuCategory.values()) {
@@ -142,14 +275,23 @@ public class VisualMenuScreen extends Screen {
             catY += 22;
         }
 
-        // тумблер Hit Color
+        // клики в Visual панели
         if (selected == MenuCategory.VISUAL) {
             int x    = wX + SIDE_W + 8;
             int y    = wY + HEADER_H + 8;
             int rowW = WIN_W - SIDE_W - 12;
-            int tx   = x + rowW - 24;
-            int ty   = y + 10;
-            if (mx >= tx && mx <= tx + 20 && my >= ty && my <= ty + 12) {
+
+            // шестерёнка
+            if (mx >= x + rowW - 36 && mx <= x + rowW - 24
+             && my >= y + 9         && my <= y + 23) {
+                colorPickerOpen = true;
+                return true;
+            }
+
+            // тумблер
+            int tx = x + rowW - 20;
+            int ty = y + 11;
+            if (mx >= tx && mx <= tx + 18 && my >= ty && my <= ty + 10) {
                 ModConfig.hitColorEnabled = !ModConfig.hitColorEnabled;
                 ModConfig.save();
                 return true;
@@ -161,39 +303,81 @@ public class VisualMenuScreen extends Screen {
     }
 
     @Override
+    public boolean mouseDragged(double mx, double my, int button,
+                                double dx, double dy) {
+        if (draggingSlider >= 0 && colorPickerOpen) {
+            int pw = 160;
+            int px = wX + (WIN_W - pw) / 2;
+            int trackX = px + 24;
+            int trackW = pw - 40;
+            updateSlider(draggingSlider, (int) mx, trackX, trackW);
+            return true;
+        }
+        return super.mouseDragged(mx, my, button, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) {
+        if (draggingSlider >= 0) {
+            draggingSlider = -1;
+            ModConfig.save();
+        }
+        return super.mouseReleased(mx, my, button);
+    }
+
+    private void updateSlider(int index, int mouseX, int trackX, int trackW) {
+        int val = (int)(((mouseX - trackX) / (float) trackW) * 255);
+        val = Math.max(0, Math.min(255, val));
+        switch (index) {
+            case 0 -> ModConfig.hitColorR = val;
+            case 1 -> ModConfig.hitColorG = val;
+            case 2 -> ModConfig.hitColorB = val;
+        }
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256) { this.close(); return true; }
+        if (keyCode == 256) {
+            if (colorPickerOpen) {
+                colorPickerOpen = false;
+                ModConfig.save();
+            } else {
+                this.close();
+            }
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean shouldPause() { return false; }
 
-    private void fillRounded(DrawContext ctx, int x, int y, int w, int h, int r, int color) {
+    // ── Хелперы отрисовки ────────────────────────────────────────────────────
+    private void fillRounded(DrawContext ctx, int x, int y, int w, int h,
+                             int r, int color) {
         ctx.fill(x + r, y,     x + w - r, y + h,     color);
         ctx.fill(x,     y + r, x + r,     y + h - r, color);
-        ctx.fill(x + w - r, y + r, x + w, y + h - r, color);
-        fillCorner(ctx, x,         y,         r,  1,  1, color);
-        fillCorner(ctx, x + w - r, y,         r, -1,  1, color);
-        fillCorner(ctx, x,         y + h - r, r,  1, -1, color);
-        fillCorner(ctx, x + w - r, y + h - r, r, -1, -1, color);
+        ctx.fill(x+w-r, y + r, x + w,     y + h - r, color);
+        fillCorner(ctx, x,       y,       r,  1,  1, color);
+        fillCorner(ctx, x+w-r,   y,       r, -1,  1, color);
+        fillCorner(ctx, x,       y+h-r,   r,  1, -1, color);
+        fillCorner(ctx, x+w-r,   y+h-r,   r, -1, -1, color);
     }
 
     private void fillCorner(DrawContext ctx, int cx, int cy, int r,
                             int dx, int dy, int color) {
-        for (int i = 0; i < r; i++) {
+        for (int i = 0; i < r; i++)
             for (int j = 0; j < r; j++) {
-                double dist = Math.sqrt((r-1-i)*(r-1-i)+(r-1-j)*(r-1-j));
-                if (dist < r - 0.5) {
+                if (Math.sqrt((r-1-i)*(r-1-i)+(r-1-j)*(r-1-j)) < r - 0.5) {
                     int px = cx + (dx > 0 ? i : r-1-i);
                     int py = cy + (dy > 0 ? j : r-1-j);
                     ctx.fill(px, py, px+1, py+1, color);
                 }
             }
-        }
     }
 
-    private void borderRounded(DrawContext ctx, int x, int y, int w, int h, int r, int color) {
+    private void borderRounded(DrawContext ctx, int x, int y, int w, int h,
+                               int r, int color) {
         ctx.drawHorizontalLine(x+r, x+w-r, y,   color);
         ctx.drawHorizontalLine(x+r, x+w-r, y+h, color);
         ctx.drawVerticalLine(x,   y+r, y+h-r, color);
@@ -205,9 +389,9 @@ public class VisualMenuScreen extends Screen {
     }
 
     private void drawArc(DrawContext ctx, int cx, int cy, int r,
-                         int color, int startDeg, int endDeg) {
-        for (int deg = startDeg; deg <= endDeg; deg += 2) {
-            double rad = Math.toRadians(deg);
+                         int color, int s, int e) {
+        for (int d = s; d <= e; d += 2) {
+            double rad = Math.toRadians(d);
             int px = cx + (int) Math.round((r-1)*Math.cos(rad));
             int py = cy - (int) Math.round((r-1)*Math.sin(rad));
             ctx.fill(px, py, px+1, py+1, color);

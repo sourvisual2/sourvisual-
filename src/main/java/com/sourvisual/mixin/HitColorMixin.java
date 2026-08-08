@@ -1,46 +1,24 @@
 package com.sourvisual.mixin;
 
 import com.sourvisual.client.config.ModConfig;
-import net.minecraft.client.texture.NativeImage;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(targets = "net.minecraft.client.render.OverlayTexture")
+@Mixin(LivingEntity.class)
 public class HitColorMixin {
 
-    // remap=false — используем Yarn имя напрямую без intermediary перевода
-    @Inject(method = "reloadOverlay", at = @At("TAIL"), remap = false)
-    private void modifyHitColor(CallbackInfo ci) {
+    @Inject(method = "damage", at = @At("RETURN"))
+    private void onDamage(DamageSource source, float amount,
+                          CallbackInfoReturnable<Boolean> cir) {
         if (!ModConfig.hitColorEnabled) return;
+        if (!Boolean.TRUE.equals(cir.getReturnValue())) return;
 
-        try {
-            NativeImage image = null;
-
-            for (java.lang.reflect.Field f : this.getClass().getDeclaredFields()) {
-                f.setAccessible(true);
-                Object val = f.get(this);
-                if (val instanceof NativeImage ni) {
-                    image = ni;
-                    break;
-                }
-            }
-
-            if (image == null) return;
-
-            int r = ModConfig.hitColorR;
-            int g = ModConfig.hitColorG;
-            int b = ModConfig.hitColorB;
-
-            // ABGR формат NativeImage
-            int abgr = (0xFF << 24) | (b << 16) | (g << 8) | r;
-
-            // y=0 строка = hurt overlay цвет
-            for (int u = 0; u < 16; u++) {
-                image.setColor(u, 0, abgr);
-            }
-
-        } catch (Exception ignored) {}
+        LivingEntity self = (LivingEntity)(Object)this;
+        self.hurtTime    = 10;
+        self.maxHurtTime = 10;
     }
 }

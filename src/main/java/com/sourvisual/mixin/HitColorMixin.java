@@ -10,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "net.minecraft.client.render.OverlayTexture")
 public class HitColorMixin {
 
-    // method_23207 = reloadOverlay в intermediary для 1.21
-    @Inject(method = "method_23207", at = @At("TAIL"))
+    // remap=false — используем Yarn имя напрямую без intermediary перевода
+    @Inject(method = "reloadOverlay", at = @At("TAIL"), remap = false)
     private void modifyHitColor(CallbackInfo ci) {
         if (!ModConfig.hitColorEnabled) return;
 
@@ -33,10 +33,10 @@ public class HitColorMixin {
             int g = ModConfig.hitColorG;
             int b = ModConfig.hitColorB;
 
-            // NativeImage хранит пиксели в ABGR
+            // ABGR формат NativeImage
             int abgr = (0xFF << 24) | (b << 16) | (g << 8) | r;
 
-            // y=0 — hurt overlay строка
+            // y=0 строка = hurt overlay цвет
             for (int u = 0; u < 16; u++) {
                 image.setColor(u, 0, abgr);
             }

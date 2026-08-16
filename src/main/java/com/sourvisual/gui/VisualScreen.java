@@ -208,7 +208,7 @@ public class VisualScreen extends Screen {
     // ---------- INPUT ----------
 
     @Override
-    public void mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         int sideX = winX;
         int sideY = winY + HEADER_H;
         int rowH = 24;
@@ -218,15 +218,13 @@ public class VisualScreen extends Screen {
             if (mouseX >= sideX && mouseX <= sideX + SIDE_W
                     && mouseY >= rowY && mouseY <= rowY + rowH - 4) {
                 currentTab = tabs[i];
-                super.mouseClicked(mouseX, mouseY, button);
-                return;
+                return true;
             }
         }
 
         if (currentTab == Tab.SETTINGS) {
             if (handleSettingsClick((int) mouseX, (int) mouseY, button)) {
-                super.mouseClicked(mouseX, mouseY, button);
-                return;
+                return true;
             }
         }
 
@@ -236,10 +234,10 @@ public class VisualScreen extends Screen {
             draggingWatermark = true;
             dragOffX = (int) mouseX - SourVisualConfig.wmX;
             dragOffY = (int) mouseY - SourVisualConfig.wmY;
-            return;
+            return true;
         }
 
-        super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -253,9 +251,13 @@ public class VisualScreen extends Screen {
     }
 
     @Override
-    public void mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        boolean wasDragging = draggingWatermark;
         draggingWatermark = false;
-        super.mouseReleased(mouseX, mouseY, button);
+        if (wasDragging) {
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     private boolean handleSettingsClick(int mouseX, int mouseY, int button) {
@@ -363,4 +365,4 @@ public class VisualScreen extends Screen {
     public boolean shouldCloseOnEsc() {
         return true;
     }
-}
+            }

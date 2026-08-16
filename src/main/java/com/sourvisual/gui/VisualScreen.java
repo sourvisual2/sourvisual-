@@ -41,9 +41,16 @@ public class VisualScreen extends Screen {
         winY = (this.height - WIN_H) / 2;
     }
 
+    // Полностью отключаем системный блюр фона для этого экрана
+    @Override
+    protected void applyBlur(float delta) {
+        // ничего не делаем — блюр не применяется
+    }
+
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        // Без this.renderBackground(...) — так фон игры не размывается и не темнится
+        // Без renderBackground(...) — фон игры не затемняется и не размывается
+
         RenderUtils.fillRounded(ctx, winX, winY, WIN_W, WIN_H, R, COLOR_BG);
 
         // Шапка
@@ -142,24 +149,13 @@ public class VisualScreen extends Screen {
             mChipX += chipW + 6;
         }
 
-        // Watermark toggles
+        // Watermark toggle (теперь только один общий переключатель видимости)
         int wmY = modeChipY + 26;
         ctx.drawText(this.textRenderer, Text.literal("Watermark"), cx, wmY, COLOR_TEXT_DIM, false);
-        int col1X = cx;
-        int col2X = cx + 90;
-        int col3X = cx + 170;
         int r1Y = wmY + 14;
-        int r2Y = r1Y + 16;
+        drawToggleRow(ctx, cx, r1Y, "Show watermark", SourVisualConfig.wmEnabled);
 
-        drawToggleRow(ctx, col1X, r1Y, "Logo", SourVisualConfig.wmLogo);
-        drawToggleRow(ctx, col2X, r1Y, "Title", SourVisualConfig.wmTitle);
-        drawToggleRow(ctx, col3X, r1Y, "Nickname", SourVisualConfig.wmNickname);
-
-        drawToggleRow(ctx, col1X, r2Y, "FPS", SourVisualConfig.wmFps);
-        drawToggleRow(ctx, col2X, r2Y, "Ping", SourVisualConfig.wmPing);
-        drawToggleRow(ctx, col3X, r2Y, "Server", SourVisualConfig.wmServer);
-
-        int hintY = r2Y + 20;
+        int hintY = r1Y + 20;
         ctx.drawText(this.textRenderer,
                 Text.literal("Drag watermark with mouse while menu is open"),
                 cx, hintY, COLOR_TEXT_DIM, false);
@@ -291,17 +287,13 @@ public class VisualScreen extends Screen {
             mChipX += chipW + 6;
         }
 
-        // Watermark toggles
+        // Watermark toggle
         int wmY = modeChipY + 26;
-        int col1X = cx, col2X = cx + 90, col3X = cx + 170;
-        int r1Y = wmY + 14, r2Y = r1Y + 16;
-
-        if (hitToggle(mouseX, mouseY, col1X, r1Y, "Logo")) { SourVisualConfig.wmLogo = !SourVisualConfig.wmLogo; return true; }
-        if (hitToggle(mouseX, mouseY, col2X, r1Y, "Title")) { SourVisualConfig.wmTitle = !SourVisualConfig.wmTitle; return true; }
-        if (hitToggle(mouseX, mouseY, col3X, r1Y, "Nickname")) { SourVisualConfig.wmNickname = !SourVisualConfig.wmNickname; return true; }
-        if (hitToggle(mouseX, mouseY, col1X, r2Y, "FPS")) { SourVisualConfig.wmFps = !SourVisualConfig.wmFps; return true; }
-        if (hitToggle(mouseX, mouseY, col2X, r2Y, "Ping")) { SourVisualConfig.wmPing = !SourVisualConfig.wmPing; return true; }
-        if (hitToggle(mouseX, mouseY, col3X, r2Y, "Server")) { SourVisualConfig.wmServer = !SourVisualConfig.wmServer; return true; }
+        int r1Y = wmY + 14;
+        if (hitToggle(mouseX, mouseY, cx, r1Y, "Show watermark")) {
+            SourVisualConfig.wmEnabled = !SourVisualConfig.wmEnabled;
+            return true;
+        }
 
         return false;
     }
@@ -357,4 +349,4 @@ public class VisualScreen extends Screen {
     public boolean shouldCloseOnEsc() {
         return true;
     }
-                }
+                                             }

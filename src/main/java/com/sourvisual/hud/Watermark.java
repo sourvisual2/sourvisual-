@@ -17,41 +17,14 @@ public class Watermark {
 
     public static void render(DrawContext ctx, MinecraftClient client) {
         if (client.player == null) return;
+        if (!SourVisualConfig.wmEnabled) return;
 
-        StringBuilder sb = new StringBuilder();
+        String nick = client.getSession().getUsername();
+        int fps = client.getCurrentFps();
+        // Если у тебя другой mappings-геттер FPS, замени client.getCurrentFps()
+        String time = LocalTime.now().format(TIME_FMT);
 
-        if (SourVisualConfig.wmLogo) {
-            sb.append("sour visual");
-        }
-
-        if (SourVisualConfig.wmNickname) {
-            appendSep(sb);
-            sb.append(client.getSession().getUsername());
-        }
-
-        if (SourVisualConfig.wmFps) {
-            appendSep(sb);
-            sb.append(client.getCurrentFps()).append(" fps");
-            // Если у тебя другой mappings-геттер FPS, замени client.getCurrentFps()
-        }
-
-        if (SourVisualConfig.wmPing) {
-            appendSep(sb);
-            sb.append(getPlayerPing(client)).append(" ms");
-        }
-
-        if (SourVisualConfig.wmServer) {
-            appendSep(sb);
-            sb.append(getServerName(client));
-        }
-
-        if (SourVisualConfig.wmTitle) {
-            appendSep(sb);
-            sb.append(LocalTime.now().format(TIME_FMT));
-        }
-
-        String line = sb.toString();
-        if (line.isEmpty()) return;
+        String line = nick + "  |  " + fps + " fps  |  " + time;
 
         int x = SourVisualConfig.wmX;
         int y = SourVisualConfig.wmY;
@@ -68,21 +41,4 @@ public class Watermark {
                 Text.literal(line),
                 x + 4, y + 3, 0xFFFFFFFF, true);
     }
-
-    private static void appendSep(StringBuilder sb) {
-        if (!sb.isEmpty()) sb.append("  |  ");
-    }
-
-    private static int getPlayerPing(MinecraftClient client) {
-        if (client.player == null || client.getNetworkHandler() == null) return 0;
-        var entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
-        return entry != null ? entry.getLatency() : 0;
-    }
-
-    private static String getServerName(MinecraftClient client) {
-        if (client.getCurrentServerEntry() != null) {
-            return client.getCurrentServerEntry().address;
-        }
-        return client.isIntegratedServerRunning() ? "singleplayer" : "unknown";
-    }
-    }
+}

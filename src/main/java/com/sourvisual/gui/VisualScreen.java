@@ -5,7 +5,6 @@ import com.sourvisual.hud.Watermark;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class VisualScreen extends Screen {
 
@@ -15,8 +14,6 @@ public class VisualScreen extends Screen {
     private static final int SIDE_W   = 82;
     private static final int HEADER_H = 27;
     private static final int R        = 6;
-
-    private static final Identifier FONT = Identifier.of("sourvisual", "league_spartan");
 
     private static final int COLOR_BG       = 0xF0141414;
     private static final int COLOR_HEADER   = 0xF01B1B1B;
@@ -46,14 +43,13 @@ public class VisualScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        this.renderBackground(ctx, mouseX, mouseY, delta);
-
+        // Без this.renderBackground(...) — так фон игры не размывается и не темнится
         RenderUtils.fillRounded(ctx, winX, winY, WIN_W, WIN_H, R, COLOR_BG);
 
         // Шапка
         ctx.fill(winX, winY, winX + WIN_W, winY + HEADER_H, COLOR_HEADER);
         ctx.drawText(this.textRenderer,
-                label("sour visual"),
+                Text.literal("sour visual"),
                 winX + 10, winY + 9, COLOR_TEXT, false);
 
         // Сайдбар
@@ -75,7 +71,7 @@ public class VisualScreen extends Screen {
             }
             int textColor = active ? COLOR_TEXT : (hovered ? COLOR_TEXT : COLOR_TEXT_DIM);
             ctx.drawText(this.textRenderer,
-                    label(tab.label),
+                    Text.literal(tab.label),
                     sideX + 12, rowY + 8, textColor, false);
         }
 
@@ -100,7 +96,7 @@ public class VisualScreen extends Screen {
 
     private void drawPlaceholder(DrawContext ctx, int x, int y, String text) {
         ctx.drawText(this.textRenderer,
-                label(text),
+                Text.literal(text),
                 x + 10, y + 10, COLOR_TEXT_DIM, false);
     }
 
@@ -114,27 +110,27 @@ public class VisualScreen extends Screen {
         int cy = y + pad;
 
         // Themes
-        ctx.drawText(this.textRenderer, label("Themes"), cx, cy, COLOR_TEXT_DIM, false);
+        ctx.drawText(this.textRenderer, Text.literal("Themes"), cx, cy, COLOR_TEXT_DIM, false);
         int themeChipY = cy + 12;
         int chipX = cx;
         for (int i = 0; i < THEME_NAMES.length; i++) {
             int chipW = this.textRenderer.getWidth(THEME_NAMES[i]) + 12;
             boolean active = SourVisualConfig.theme.ordinal() == i;
             ctx.fill(chipX, themeChipY, chipX + chipW, themeChipY + 16, active ? COLOR_CHIP_ON : COLOR_CHIP);
-            ctx.drawText(this.textRenderer, label(THEME_NAMES[i]), chipX + 6, themeChipY + 4, COLOR_TEXT, false);
+            ctx.drawText(this.textRenderer, Text.literal(THEME_NAMES[i]), chipX + 6, themeChipY + 4, COLOR_TEXT, false);
             chipX += chipW + 6;
         }
 
         // Customizing
         int custY = themeChipY + 26;
-        ctx.drawText(this.textRenderer, label("Customizing"), cx, custY, COLOR_TEXT_DIM, false);
+        ctx.drawText(this.textRenderer, Text.literal("Customizing"), cx, custY, COLOR_TEXT_DIM, false);
         int rowY = custY + 12;
         drawColorRow(ctx, cx, rowY, true);
         drawColorRow(ctx, cx + 118, rowY, false);
 
         // RGB Mode
         int modeY = rowY + 24;
-        ctx.drawText(this.textRenderer, label("RGB Mode"), cx, modeY, COLOR_TEXT_DIM, false);
+        ctx.drawText(this.textRenderer, Text.literal("RGB Mode"), cx, modeY, COLOR_TEXT_DIM, false);
         String[] modes = {"Radial", "Sphere", "Metric"};
         int modeChipY = modeY + 12;
         int mChipX = cx;
@@ -142,13 +138,13 @@ public class VisualScreen extends Screen {
             int chipW = this.textRenderer.getWidth(modes[i]) + 12;
             boolean active = SourVisualConfig.rgbMode.ordinal() == i;
             ctx.fill(mChipX, modeChipY, mChipX + chipW, modeChipY + 16, active ? COLOR_CHIP_ON : COLOR_CHIP);
-            ctx.drawText(this.textRenderer, label(modes[i]), mChipX + 6, modeChipY + 4, COLOR_TEXT, false);
+            ctx.drawText(this.textRenderer, Text.literal(modes[i]), mChipX + 6, modeChipY + 4, COLOR_TEXT, false);
             mChipX += chipW + 6;
         }
 
         // Watermark toggles
         int wmY = modeChipY + 26;
-        ctx.drawText(this.textRenderer, label("Watermark"), cx, wmY, COLOR_TEXT_DIM, false);
+        ctx.drawText(this.textRenderer, Text.literal("Watermark"), cx, wmY, COLOR_TEXT_DIM, false);
         int col1X = cx;
         int col2X = cx + 90;
         int col3X = cx + 170;
@@ -165,7 +161,7 @@ public class VisualScreen extends Screen {
 
         int hintY = r2Y + 20;
         ctx.drawText(this.textRenderer,
-                label("Drag watermark with mouse while menu is open"),
+                Text.literal("Drag watermark with mouse while menu is open"),
                 cx, hintY, COLOR_TEXT_DIM, false);
     }
 
@@ -188,21 +184,17 @@ public class VisualScreen extends Screen {
         ctx.fill(x, y, x + w, y + h, COLOR_CHIP);
         String s = String.valueOf(value);
         int tw = this.textRenderer.getWidth(s);
-        ctx.drawText(this.textRenderer, label(s), x + (w - tw) / 2, y + 3, COLOR_TEXT, false);
+        ctx.drawText(this.textRenderer, Text.literal(s), x + (w - tw) / 2, y + 3, COLOR_TEXT, false);
     }
 
     private void drawToggleRow(DrawContext ctx, int x, int y, String name, boolean on) {
-        ctx.drawText(this.textRenderer, label(name), x, y, COLOR_TEXT, false);
+        ctx.drawText(this.textRenderer, Text.literal(name), x, y, COLOR_TEXT, false);
         int boxX = x + this.textRenderer.getWidth(name) + 6;
         int boxSize = 10;
         ctx.fill(boxX, y - 1, boxX + boxSize, y - 1 + boxSize, on ? COLOR_ACCENT : COLOR_CHIP);
         if (on) {
             ctx.drawText(this.textRenderer, Text.literal("v"), boxX + 1, y - 1, 0xFFFFFFFF, false);
         }
-    }
-
-    private Text label(String s) {
-        return Text.literal(s).setStyle(Text.empty().getStyle().withFont(FONT));
     }
 
     // ---------- INPUT ----------
@@ -365,4 +357,4 @@ public class VisualScreen extends Screen {
     public boolean shouldCloseOnEsc() {
         return true;
     }
-            }
+                }

@@ -19,18 +19,16 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.8
-        shell: bash
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Setup Gradle 8.8
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.8
 
       - name: Build mod
-        run: ./gradlew build
+        run: gradle build
 
       - name: Upload built jar
         uses: actions/upload-artifact@v4
         with:
           name: sourvisual-jar
-          path: build/libs/*.jar
+          path: build/libs/*.jar   

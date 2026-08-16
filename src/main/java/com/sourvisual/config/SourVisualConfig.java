@@ -19,13 +19,8 @@ public class SourVisualConfig {
 
     public static RgbMode rgbMode = RgbMode.METRIC;
 
-    // Вотермарка — какие блоки показывать
-    public static boolean wmLogo     = true;
-    public static boolean wmTitle    = true;
-    public static boolean wmNickname = true;
-    public static boolean wmFps      = true;
-    public static boolean wmPing     = true;
-    public static boolean wmServer   = true;
+    // Вотермарка: только ник, FPS, время — общий тумблер видимости
+    public static boolean wmEnabled = true;
 
     // Позиция вотермарки (перетаскивается мышкой при открытом меню)
     public static int wmX = 4;

@@ -27,6 +27,8 @@ public class VisualScreen extends Screen {
     private int resizeStartMouseX, resizeStartMouseY;
     private int resizeStartW, resizeStartH;
 
+    private boolean draggingSlider = false;
+
     public VisualScreen() {
         super(Text.literal("Sour Visual"));
     }
@@ -105,9 +107,9 @@ public class VisualScreen extends Screen {
     private void renderTabContent(DrawContext ctx, int x, int y, int w, int h, int mouseX, int mouseY) {
         switch (currentTab) {
             case VISUAL -> drawPlaceholder(ctx, x, y, "Visual modules go here");
-            case UTILITIES -> drawPlaceholder(ctx, x, y, "Utilities modules go here");
+            case UTILITIES -> drawUtilities(ctx, x, y);
             case KEYBINDS -> drawPlaceholder(ctx, x, y, "Keybind list goes here");
-            case SETTINGS -> drawSettings(ctx, x, y, mouseX, mouseY);
+            case SETTINGS -> drawThemes(ctx, x, y, w, h);
         }
     }
 
@@ -115,11 +117,12 @@ public class VisualScreen extends Screen {
         ctx.drawText(this.textRenderer, label(text), x + 10, y + 10, SourVisualConfig.getTextDimColor(), false);
     }
 
-    // ---------- SETTINGS ----------
+    // ---------- UTILITIES ----------
 
-    private static final String[] THEME_NAMES = {"White", "Dark", "Dark+", "Peach", "Custom"};
+    private static final int SLIDER_W = 180;
+    private static final int SLIDER_H = 6;
 
-    private void drawSettings(DrawContext ctx, int x, int y, int mouseX, int mouseY) {
+    private void drawUtilities(DrawContext ctx, int x, int y) {
         int pad = 10;
         int cx = x + pad;
         int cy = y + pad;
@@ -127,79 +130,69 @@ public class VisualScreen extends Screen {
         int text = SourVisualConfig.getTextColor();
         int textDim = SourVisualConfig.getTextDimColor();
         int chip = SourVisualConfig.getChipColor();
-        int chipOn = SourVisualConfig.getChipOnColor();
         int accent = SourVisualConfig.getAccentColor();
 
-        // Themes
+        ctx.drawText(this.textRenderer, label("Fullbright"), cx, cy, textDim, false);
+
+        int toggleY = cy + 14;
+        drawToggleRow(ctx, cx, toggleY, "Enabled", SourVisualConfig.fullbrightEnabled, chip, accent, text);
+
+        int sliderY = toggleY + 20;
+        ctx.fill(cx, sliderY, cx + SLIDER_W, sliderY + SLIDER_H, chip);
+        int filled = (int) (SLIDER_W * (SourVisualConfig.fullbrightValue / 100.0));
+        ctx.fill(cx, sliderY, cx + filled, sliderY + SLIDER_H, accent);
+
+        String pct = SourVisualConfig.fullbrightValue + "%";
+        ctx.drawText(this.textRenderer, label(pct), cx + SLIDER_W + 8, sliderY - 2, text, false);
+
+        int wmLabelY = sliderY + 20;
+        ctx.drawText(this.textRenderer, label("Watermark"), cx, wmLabelY, textDim, false);
+        int wmToggleY = wmLabelY + 14;
+        drawToggleRow(ctx, cx, wmToggleY, "Show watermark", SourVisualConfig.wmEnabled, chip, accent, text);
+    }
+
+    // ---------- THEMES (Settings) ----------
+
+    private static final int THEME_COLS = 2;
+    private static final int THEME_CELL_W = 104;
+    private static final int THEME_CELL_GAP = 8;
+    private static final int THEME_ROW_H = 26;
+    private static final int THEME_BAR_H = 6;
+
+    private void drawThemes(DrawContext ctx, int x, int y, int w, int h) {
+        int pad = 10;
+        int cx = x + pad;
+        int cy = y + pad;
+
+        int text = SourVisualConfig.getTextColor();
+        int textDim = SourVisualConfig.getTextDimColor();
+
         ctx.drawText(this.textRenderer, label("Themes"), cx, cy, textDim, false);
-        int themeChipY = cy + 12;
-        int chipX = cx;
-        for (int i = 0; i < THEME_NAMES.length; i++) {
-            int chipW = this.textRenderer.getWidth(THEME_NAMES[i]) + 12;
-            boolean active = SourVisualConfig.theme.ordinal() == i;
-            ctx.fill(chipX, themeChipY, chipX + chipW, themeChipY + 16, active ? chipOn : chip);
-            ctx.drawText(this.textRenderer, label(THEME_NAMES[i]), chipX + 6, themeChipY + 4, text, false);
-            chipX += chipW + 6;
+
+        int gridY = cy + 14;
+        ctx.enableScissor(x, gridY, x + w, y + h - 4);
+
+        SourVisualConfig.ThemePreset[] themes = SourVisualConfig.THEMES;
+        for (int i = 0; i < themes.length; i++) {
+            int col = i % THEME_COLS;
+            int row = i / THEME_COLS;
+            int cellX = cx + col * (THEME_CELL_W + THEME_CELL_GAP);
+            int cellY = gridY + row * THEME_ROW_H;
+
+            boolean selected = SourVisualConfig.selectedThemeIndex == i;
+            int nameColor = selected ? text : textDim;
+            ctx.drawText(this.textRenderer, label(themes[i].name), cellX, cellY, nameColor, false);
+
+            int barY = cellY + 10;
+            ctx.fill(cellX, barY, cellX + THEME_CELL_W, barY + THEME_BAR_H, themes[i].color);
+
+            if (selected) {
+                ctx.fill(cellX - 2, barY - 2, cellX + THEME_CELL_W + 2, barY - 1, text);
+                ctx.fill(cellX - 2, barY + THEME_BAR_H + 1, cellX + THEME_CELL_W + 2, barY + THEME_BAR_H + 2, text);
+            }
         }
 
-        // Customizing
-        int custY = themeChipY + 26;
-        ctx.drawText(this.textRenderer, label("Customizing"), cx, custY, textDim, false);
-        int rowY = custY + 12;
-        drawColorRow(ctx, cx, rowY, true, chip, text);
-        drawColorRow(ctx, cx + 118, rowY, false, chip, text);
-
-        // RGB Mode
-        int modeY = rowY + 24;
-        ctx.drawText(this.textRenderer, label("RGB Mode"), cx, modeY, textDim, false);
-        String[] modes = {"Radial", "Sphere", "Metric"};
-        int modeChipY = modeY + 12;
-        int mChipX = cx;
-        for (int i = 0; i < modes.length; i++) {
-            int chipW = this.textRenderer.getWidth(modes[i]) + 12;
-            boolean active = SourVisualConfig.rgbMode.ordinal() == i;
-            ctx.fill(mChipX, modeChipY, mChipX + chipW, modeChipY + 16, active ? chipOn : chip);
-            ctx.drawText(this.textRenderer, label(modes[i]), mChipX + 6, modeChipY + 4, text, false);
-            mChipX += chipW + 6;
-        }
-
-        // Watermark toggle
-        int wmY = modeChipY + 26;
-        ctx.drawText(this.textRenderer, label("Watermark"), cx, wmY, textDim, false);
-        int r1Y = wmY + 14;
-        drawToggleRow(ctx, cx, r1Y, "Show watermark", SourVisualConfig.wmEnabled, chip, accent, text);
-
-        int hintY = r1Y + 20;
-        ctx.drawText(this.textRenderer,
-                label("Drag watermark with mouse while menu is open"),
-                cx, hintY, textDim, false);
-
-        int hint2Y = hintY + 12;
-        ctx.drawText(this.textRenderer,
-                label("Drag bottom-right corner to resize menu"),
-                cx, hint2Y, textDim, false);
-    }
-
-    private void drawColorRow(DrawContext ctx, int x, int y, boolean first, int chip, int text) {
-        int chipW = 20, chipH = 14, gap = 4;
-        int r = first ? SourVisualConfig.color1R : SourVisualConfig.color2R;
-        int g = first ? SourVisualConfig.color1G : SourVisualConfig.color2G;
-        int b = first ? SourVisualConfig.color1B : SourVisualConfig.color2B;
-
-        drawNumChip(ctx, x, y, chipW, chipH, r, chip, text);
-        drawNumChip(ctx, x + chipW + gap, y, chipW, chipH, g, chip, text);
-        drawNumChip(ctx, x + (chipW + gap) * 2, y, chipW, chipH, b, chip, text);
-
-        int swatchX = x + (chipW + gap) * 3;
-        int color = first ? SourVisualConfig.getAccentColor() : SourVisualConfig.getSecondaryColor();
-        ctx.fill(swatchX, y, swatchX + chipH, y + chipH, color);
-    }
-
-    private void drawNumChip(DrawContext ctx, int x, int y, int w, int h, int value, int chip, int text) {
-        ctx.fill(x, y, x + w, y + h, chip);
-        String s = String.valueOf(value);
-        int tw = this.textRenderer.getWidth(s);
-        ctx.drawText(this.textRenderer, label(s), x + (w - tw) / 2, y + 3, text, false);
+        ctx.disableScissor();
     }
 
     private void drawToggleRow(DrawContext ctx, int x, int y, String name, boolean on, int chip, int accent, int text) {
@@ -249,7 +242,13 @@ public class VisualScreen extends Screen {
         }
 
         if (currentTab == Tab.SETTINGS) {
-            if (handleSettingsClick((int) mouseX, (int) mouseY, button)) {
+            if (handleThemesClick((int) mouseX, (int) mouseY)) {
+                return true;
+            }
+        }
+
+        if (currentTab == Tab.UTILITIES) {
+            if (handleUtilitiesClick((int) mouseX, (int) mouseY)) {
                 return true;
             }
         }
@@ -282,63 +281,49 @@ public class VisualScreen extends Screen {
             SourVisualConfig.wmY = (int) mouseY - dragOffY;
             return true;
         }
+        if (draggingSlider) {
+            updateSliderFromMouse((int) mouseX);
+            return true;
+        }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        boolean wasActive = resizing || draggingWatermark;
+        boolean wasActive = resizing || draggingWatermark || draggingSlider;
         resizing = false;
         draggingWatermark = false;
+        draggingSlider = false;
         if (wasActive) {
             return true;
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
-    private boolean handleSettingsClick(int mouseX, int mouseY, int button) {
+    private boolean handleUtilitiesClick(int mouseX, int mouseY) {
         int pad = 10;
         int x = winX + SIDE_W;
         int y = winY + HEADER_H;
         int cx = x + pad;
         int cy = y + pad;
 
-        // Themes
-        int themeChipY = cy + 12;
-        int chipX = cx;
-        for (int i = 0; i < THEME_NAMES.length; i++) {
-            int chipW = this.textRenderer.getWidth(THEME_NAMES[i]) + 12;
-            if (mouseX >= chipX && mouseX <= chipX + chipW && mouseY >= themeChipY && mouseY <= themeChipY + 16) {
-                SourVisualConfig.theme = SourVisualConfig.Theme.values()[i];
-                return true;
-            }
-            chipX += chipW + 6;
+        int toggleY = cy + 14;
+        if (hitToggle(mouseX, mouseY, cx, toggleY, "Enabled")) {
+            SourVisualConfig.fullbrightEnabled = !SourVisualConfig.fullbrightEnabled;
+            return true;
         }
 
-        // Customizing (RGB чипы: ЛКМ +5, ПКМ -5)
-        int custY = themeChipY + 26;
-        int rowY = custY + 12;
-        if (handleColorRowClick(mouseX, mouseY, cx, rowY, button, true)) return true;
-        if (handleColorRowClick(mouseX, mouseY, cx + 118, rowY, button, false)) return true;
-
-        // RGB Mode
-        int modeY = rowY + 24;
-        String[] modes = {"Radial", "Sphere", "Metric"};
-        int modeChipY = modeY + 12;
-        int mChipX = cx;
-        for (int i = 0; i < modes.length; i++) {
-            int chipW = this.textRenderer.getWidth(modes[i]) + 12;
-            if (mouseX >= mChipX && mouseX <= mChipX + chipW && mouseY >= modeChipY && mouseY <= modeChipY + 16) {
-                SourVisualConfig.rgbMode = SourVisualConfig.RgbMode.values()[i];
-                return true;
-            }
-            mChipX += chipW + 6;
+        int sliderY = toggleY + 20;
+        if (mouseX >= cx - 4 && mouseX <= cx + SLIDER_W + 4
+                && mouseY >= sliderY - 4 && mouseY <= sliderY + SLIDER_H + 4) {
+            draggingSlider = true;
+            updateSliderFromMouse(mouseX);
+            return true;
         }
 
-        // Watermark toggle
-        int wmY = modeChipY + 26;
-        int r1Y = wmY + 14;
-        if (hitToggle(mouseX, mouseY, cx, r1Y, "Show watermark")) {
+        int wmLabelY = sliderY + 20;
+        int wmToggleY = wmLabelY + 14;
+        if (hitToggle(mouseX, mouseY, cx, wmToggleY, "Show watermark")) {
             SourVisualConfig.wmEnabled = !SourVisualConfig.wmEnabled;
             return true;
         }
@@ -346,46 +331,43 @@ public class VisualScreen extends Screen {
         return false;
     }
 
-    private boolean hitToggle(int mouseX, int mouseY, int x, int y, String name) {
-        int boxX = x + this.textRenderer.getWidth(name) + 6;
-        int boxSize = 10;
-        return mouseX >= boxX && mouseX <= boxX + boxSize && mouseY >= y - 1 && mouseY <= y - 1 + boxSize;
+    private void updateSliderFromMouse(int mouseX) {
+        int pad = 10;
+        int cx = winX + SIDE_W + pad;
+        int rel = mouseX - cx;
+        double pct = (double) rel / SLIDER_W;
+        pct = Math.max(0.0, Math.min(1.0, pct));
+        SourVisualConfig.fullbrightValue = (int) Math.round(pct * 100);
     }
 
-    private boolean handleColorRowClick(int mouseX, int mouseY, int x, int y, int button, boolean first) {
-        int chipW = 20, chipH = 14, gap = 4;
-        int delta = button == 0 ? 5 : (button == 1 ? -5 : 0);
-        if (delta == 0) return false;
+    private boolean handleThemesClick(int mouseX, int mouseY) {
+        int pad = 10;
+        int x = winX + SIDE_W;
+        int y = winY + HEADER_H;
+        int cx = x + pad;
+        int cy = y + pad;
+        int gridY = cy + 14;
 
-        for (int i = 0; i < 3; i++) {
-            int cx = x + i * (chipW + gap);
-            if (mouseX >= cx && mouseX <= cx + chipW && mouseY >= y && mouseY <= y + chipH) {
-                applyColorDelta(first, i, delta);
+        SourVisualConfig.ThemePreset[] themes = SourVisualConfig.THEMES;
+        for (int i = 0; i < themes.length; i++) {
+            int col = i % THEME_COLS;
+            int row = i / THEME_COLS;
+            int cellX = cx + col * (THEME_CELL_W + THEME_CELL_GAP);
+            int cellY = gridY + row * THEME_ROW_H;
+
+            if (mouseX >= cellX && mouseX <= cellX + THEME_CELL_W
+                    && mouseY >= cellY && mouseY <= cellY + THEME_ROW_H - 4) {
+                SourVisualConfig.selectedThemeIndex = i;
                 return true;
             }
         }
         return false;
     }
 
-    private void applyColorDelta(boolean first, int channel, int delta) {
-        if (first) {
-            switch (channel) {
-                case 0 -> SourVisualConfig.color1R = clamp(SourVisualConfig.color1R + delta);
-                case 1 -> SourVisualConfig.color1G = clamp(SourVisualConfig.color1G + delta);
-                case 2 -> SourVisualConfig.color1B = clamp(SourVisualConfig.color1B + delta);
-            }
-        } else {
-            switch (channel) {
-                case 0 -> SourVisualConfig.color2R = clamp(SourVisualConfig.color2R + delta);
-                case 1 -> SourVisualConfig.color2G = clamp(SourVisualConfig.color2G + delta);
-                case 2 -> SourVisualConfig.color2B = clamp(SourVisualConfig.color2B + delta);
-            }
-        }
-        SourVisualConfig.theme = SourVisualConfig.Theme.CUSTOM;
-    }
-
-    private int clamp(int v) {
-        return Math.max(0, Math.min(255, v));
+    private boolean hitToggle(int mouseX, int mouseY, int x, int y, String name) {
+        int boxX = x + this.textRenderer.getWidth(name) + 6;
+        int boxSize = 10;
+        return mouseX >= boxX && mouseX <= boxX + boxSize && mouseY >= y - 1 && mouseY <= y - 1 + boxSize;
     }
 
     @Override
@@ -397,4 +379,4 @@ public class VisualScreen extends Screen {
     public boolean shouldCloseOnEsc() {
         return true;
     }
-            }
+                }

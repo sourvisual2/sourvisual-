@@ -5,7 +5,6 @@ import com.sourvisual.hud.Watermark;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class VisualScreen extends Screen {
 
@@ -13,8 +12,6 @@ public class VisualScreen extends Screen {
     private static final int HEADER_H = 27;
     private static final int R        = 6;
     private static final int RESIZE_GRIP = 10;
-
-    private static final Identifier FONT = Identifier.of("sourvisual", "minecraftia");
 
     private Tab currentTab = Tab.VISUAL;
 
@@ -26,8 +23,6 @@ public class VisualScreen extends Screen {
     private boolean resizing = false;
     private int resizeStartMouseX, resizeStartMouseY;
     private int resizeStartW, resizeStartH;
-
-    private boolean draggingSlider = false;
 
     public VisualScreen() {
         super(Text.literal("Sour Visual"));
@@ -57,16 +52,18 @@ public class VisualScreen extends Screen {
         int text = SourVisualConfig.getTextColor();
         int textDim = SourVisualConfig.getTextDimColor();
 
+        // Базовый фон — скруглены все 4 угла окна
         RenderUtils.fillRounded(ctx, winX, winY, winW, winH, R, bg);
 
-        // Шапка
-        ctx.fill(winX, winY, winX + winW, winY + HEADER_H, header);
-        ctx.drawText(this.textRenderer, label("sour visual"), winX + 10, winY + 9, text, false);
+        // Шапка — скруглены только верхние углы
+        RenderUtils.fillRoundedTop(ctx, winX, winY, winW, HEADER_H, R, header);
+        ctx.drawText(this.textRenderer, Text.literal("sour visual"), winX + 10, winY + 9, text, false);
 
-        // Сайдбар
+        // Сайдбар — скруглён только нижний левый угол (совпадает с углом окна)
         int sideX = winX;
         int sideY = winY + HEADER_H;
-        ctx.fill(sideX, sideY, sideX + SIDE_W, winY + winH, side);
+        int sideH = winH - HEADER_H;
+        RenderUtils.fillRoundedBottomLeft(ctx, sideX, sideY, SIDE_W, sideH, R, side);
 
         Tab[] tabs = Tab.values();
         int rowH = 24;
@@ -81,10 +78,10 @@ public class VisualScreen extends Screen {
                 ctx.fill(sideX, rowY, sideX + 3, rowY + rowH - 4, accent);
             }
             int textColor = active ? text : (hovered ? text : textDim);
-            ctx.drawText(this.textRenderer, label(tab.label), sideX + 12, rowY + 8, textColor, false);
+            ctx.drawText(this.textRenderer, Text.literal(tab.label), sideX + 12, rowY + 8, textColor, false);
         }
 
-        // Контентная область
+        // Контентная область (фон уже дан базовым fillRounded, ничего сверху не рисуем)
         int contentX = winX + SIDE_W;
         int contentY = winY + HEADER_H;
         int contentW = winW - SIDE_W;
@@ -107,48 +104,53 @@ public class VisualScreen extends Screen {
     private void renderTabContent(DrawContext ctx, int x, int y, int w, int h, int mouseX, int mouseY) {
         switch (currentTab) {
             case VISUAL -> drawPlaceholder(ctx, x, y, "Visual modules go here");
-            case UTILITIES -> drawUtilities(ctx, x, y);
+            case UTILITIES -> drawUtilities(ctx, x, y, w);
             case KEYBINDS -> drawPlaceholder(ctx, x, y, "Keybind list goes here");
             case SETTINGS -> drawThemes(ctx, x, y, w, h);
         }
     }
 
     private void drawPlaceholder(DrawContext ctx, int x, int y, String text) {
-        ctx.drawText(this.textRenderer, label(text), x + 10, y + 10, SourVisualConfig.getTextDimColor(), false);
+        ctx.drawText(this.textRenderer, Text.literal(text), x + 10, y + 10, SourVisualConfig.getTextDimColor(), false);
     }
 
-    // ---------- UTILITIES ----------
+    // ---------- UTILITIES (карточки-переключатели) ----------
 
-    private static final int SLIDER_W = 180;
-    private static final int SLIDER_H = 6;
+    private static final int ROW_H = 20;
+    private static final int ROW_GAP = 6;
 
-    private void drawUtilities(DrawContext ctx, int x, int y) {
+    private void drawUtilities(DrawContext ctx, int x, int y, int w) {
         int pad = 10;
         int cx = x + pad;
         int cy = y + pad;
+        int rowW = w - pad * 2;
 
         int text = SourVisualConfig.getTextColor();
-        int textDim = SourVisualConfig.getTextDimColor();
         int chip = SourVisualConfig.getChipColor();
         int accent = SourVisualConfig.getAccentColor();
 
-        ctx.drawText(this.textRenderer, label("Fullbright"), cx, cy, textDim, false);
+        drawSwitchRow(ctx, cx, cy, rowW, "Fullbright", SourVisualConfig.fullbrightEnabled, chip, accent, text);
+        drawSwitchRow(ctx, cx, cy + (ROW_H + ROW_GAP), rowW, "Watermark", SourVisualConfig.wmEnabled, chip, accent, text);
+    }
 
-        int toggleY = cy + 14;
-        drawToggleRow(ctx, cx, toggleY, "Enabled", SourVisualConfig.fullbrightEnabled, chip, accent, text);
+    private void drawSwitchRow(DrawContext ctx, int x, int y, int w, String label, boolean on, int chip, int accent, int text) {
+        RenderUtils.fillRounded(ctx, x, y, w, ROW_H, 4, chip);
+        ctx.drawText(this.textRenderer, Text.literal(label), x + 8, y + (ROW_H - 8) / 2, text, false);
 
-        int sliderY = toggleY + 20;
-        ctx.fill(cx, sliderY, cx + SLIDER_W, sliderY + SLIDER_H, chip);
-        int filled = (int) (SLIDER_W * (SourVisualConfig.fullbrightValue / 100.0));
-        ctx.fill(cx, sliderY, cx + filled, sliderY + SLIDER_H, accent);
+        int trackW = 22, trackH = 11;
+        int trackX = x + w - trackW - 6;
+        int trackY = y + (ROW_H - trackH) / 2;
+        drawSwitch(ctx, trackX, trackY, trackW, trackH, on, accent);
+    }
 
-        String pct = SourVisualConfig.fullbrightValue + "%";
-        ctx.drawText(this.textRenderer, label(pct), cx + SLIDER_W + 8, sliderY - 2, text, false);
+    private void drawSwitch(DrawContext ctx, int x, int y, int trackW, int trackH, boolean on, int accent) {
+        int trackColor = on ? accent : 0xFF4A4A4A;
+        RenderUtils.fillRounded(ctx, x, y, trackW, trackH, trackH / 2, trackColor);
 
-        int wmLabelY = sliderY + 20;
-        ctx.drawText(this.textRenderer, label("Watermark"), cx, wmLabelY, textDim, false);
-        int wmToggleY = wmLabelY + 14;
-        drawToggleRow(ctx, cx, wmToggleY, "Show watermark", SourVisualConfig.wmEnabled, chip, accent, text);
+        int knobD = trackH - 2;
+        int knobX = on ? x + trackW - knobD - 1 : x + 1;
+        int knobY = y + 1;
+        RenderUtils.fillRounded(ctx, knobX, knobY, knobD, knobD, knobD / 2, 0xFFFFFFFF);
     }
 
     // ---------- THEMES (Settings) ----------
@@ -167,7 +169,7 @@ public class VisualScreen extends Screen {
         int text = SourVisualConfig.getTextColor();
         int textDim = SourVisualConfig.getTextDimColor();
 
-        ctx.drawText(this.textRenderer, label("Themes"), cx, cy, textDim, false);
+        ctx.drawText(this.textRenderer, Text.literal("Themes"), cx, cy, textDim, false);
 
         int gridY = cy + 14;
         ctx.enableScissor(x, gridY, x + w, y + h - 4);
@@ -181,7 +183,7 @@ public class VisualScreen extends Screen {
 
             boolean selected = SourVisualConfig.selectedThemeIndex == i;
             int nameColor = selected ? text : textDim;
-            ctx.drawText(this.textRenderer, label(themes[i].name), cellX, cellY, nameColor, false);
+            ctx.drawText(this.textRenderer, Text.literal(themes[i].name), cellX, cellY, nameColor, false);
 
             int barY = cellY + 10;
             ctx.fill(cellX, barY, cellX + THEME_CELL_W, barY + THEME_BAR_H, themes[i].color);
@@ -193,20 +195,6 @@ public class VisualScreen extends Screen {
         }
 
         ctx.disableScissor();
-    }
-
-    private void drawToggleRow(DrawContext ctx, int x, int y, String name, boolean on, int chip, int accent, int text) {
-        ctx.drawText(this.textRenderer, label(name), x, y, text, false);
-        int boxX = x + this.textRenderer.getWidth(name) + 6;
-        int boxSize = 10;
-        ctx.fill(boxX, y - 1, boxX + boxSize, y - 1 + boxSize, on ? accent : chip);
-        if (on) {
-            ctx.drawText(this.textRenderer, label("v"), boxX + 1, y - 1, 0xFFFFFFFF, false);
-        }
-    }
-
-    private Text label(String s) {
-        return Text.literal(s).setStyle(Text.empty().getStyle().withFont(FONT));
     }
 
     // ---------- INPUT ----------
@@ -281,19 +269,14 @@ public class VisualScreen extends Screen {
             SourVisualConfig.wmY = (int) mouseY - dragOffY;
             return true;
         }
-        if (draggingSlider) {
-            updateSliderFromMouse((int) mouseX);
-            return true;
-        }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        boolean wasActive = resizing || draggingWatermark || draggingSlider;
+        boolean wasActive = resizing || draggingWatermark;
         resizing = false;
         draggingWatermark = false;
-        draggingSlider = false;
         if (wasActive) {
             return true;
         }
@@ -306,24 +289,15 @@ public class VisualScreen extends Screen {
         int y = winY + HEADER_H;
         int cx = x + pad;
         int cy = y + pad;
+        int rowW = (SourVisualConfig.winW - SIDE_W) - pad * 2;
 
-        int toggleY = cy + 14;
-        if (hitToggle(mouseX, mouseY, cx, toggleY, "Enabled")) {
+        if (hitRow(mouseX, mouseY, cx, cy, rowW)) {
             SourVisualConfig.fullbrightEnabled = !SourVisualConfig.fullbrightEnabled;
             return true;
         }
 
-        int sliderY = toggleY + 20;
-        if (mouseX >= cx - 4 && mouseX <= cx + SLIDER_W + 4
-                && mouseY >= sliderY - 4 && mouseY <= sliderY + SLIDER_H + 4) {
-            draggingSlider = true;
-            updateSliderFromMouse(mouseX);
-            return true;
-        }
-
-        int wmLabelY = sliderY + 20;
-        int wmToggleY = wmLabelY + 14;
-        if (hitToggle(mouseX, mouseY, cx, wmToggleY, "Show watermark")) {
+        int row2Y = cy + (ROW_H + ROW_GAP);
+        if (hitRow(mouseX, mouseY, cx, row2Y, rowW)) {
             SourVisualConfig.wmEnabled = !SourVisualConfig.wmEnabled;
             return true;
         }
@@ -331,13 +305,8 @@ public class VisualScreen extends Screen {
         return false;
     }
 
-    private void updateSliderFromMouse(int mouseX) {
-        int pad = 10;
-        int cx = winX + SIDE_W + pad;
-        int rel = mouseX - cx;
-        double pct = (double) rel / SLIDER_W;
-        pct = Math.max(0.0, Math.min(1.0, pct));
-        SourVisualConfig.fullbrightValue = (int) Math.round(pct * 100);
+    private boolean hitRow(int mouseX, int mouseY, int x, int y, int w) {
+        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + ROW_H;
     }
 
     private boolean handleThemesClick(int mouseX, int mouseY) {
@@ -364,12 +333,6 @@ public class VisualScreen extends Screen {
         return false;
     }
 
-    private boolean hitToggle(int mouseX, int mouseY, int x, int y, String name) {
-        int boxX = x + this.textRenderer.getWidth(name) + 6;
-        int boxSize = 10;
-        return mouseX >= boxX && mouseX <= boxX + boxSize && mouseY >= y - 1 && mouseY <= y - 1 + boxSize;
-    }
-
     @Override
     public boolean shouldPause() {
         return false;
@@ -379,4 +342,4 @@ public class VisualScreen extends Screen {
     public boolean shouldCloseOnEsc() {
         return true;
     }
-                }
+                   }

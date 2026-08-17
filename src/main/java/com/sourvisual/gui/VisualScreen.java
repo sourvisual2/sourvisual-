@@ -14,7 +14,7 @@ public class VisualScreen extends Screen {
     private static final int R        = 6;
     private static final int RESIZE_GRIP = 10;
 
-    private static final Identifier FONT = Identifier.of("sourvisual", "vcr_osd_mono");
+    private static final Identifier FONT = Identifier.of("sourvisual", "minecraftia");
 
     private Tab currentTab = Tab.VISUAL;
 
@@ -397,4 +397,4 @@ public class VisualScreen extends Screen {
     public boolean shouldCloseOnEsc() {
         return true;
     }
-    }
+            }

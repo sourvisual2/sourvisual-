@@ -15,7 +15,9 @@
       "com.sourvisual.SourVisualClient"
     ]
   },
-  "mixins": [],
+  "mixins": [
+    "sourvisual.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.15.11",
     "minecraft": "1.21",

@@ -10,7 +10,7 @@ public class VisualScreen extends Screen {
 
     private static final int SIDE_W   = 82;
     private static final int HEADER_H = 27;
-    private static final int R        = 6;
+    private static final int R        = 14;
     private static final int RESIZE_GRIP = 10;
 
     private Tab currentTab = Tab.VISUAL;
@@ -24,6 +24,9 @@ public class VisualScreen extends Screen {
     private int resizeStartMouseX, resizeStartMouseY;
     private int resizeStartW, resizeStartH;
 
+    private boolean hitboxSettingsOpen = false;
+    private boolean draggingOpacitySlider = false;
+
     public VisualScreen() {
         super(Text.literal("Sour Visual"));
     }
@@ -34,10 +37,9 @@ public class VisualScreen extends Screen {
         winY = (this.height - SourVisualConfig.winH) / 2;
     }
 
-    // Полностью отключаем системный блюр фона для этого экрана
     @Override
     protected void applyBlur(float delta) {
-        // ничего не делаем — блюр не применяется
+        // блюр фона отключён
     }
 
     @Override
@@ -52,14 +54,11 @@ public class VisualScreen extends Screen {
         int text = SourVisualConfig.getTextColor();
         int textDim = SourVisualConfig.getTextDimColor();
 
-        // Базовый фон — скруглены все 4 угла окна
         RenderUtils.fillRounded(ctx, winX, winY, winW, winH, R, bg);
 
-        // Шапка — скруглены только верхние углы
         RenderUtils.fillRoundedTop(ctx, winX, winY, winW, HEADER_H, R, header);
         ctx.drawText(this.textRenderer, Text.literal("sour visual"), winX + 10, winY + 9, text, false);
 
-        // Сайдбар — скруглён только нижний левый угол (совпадает с углом окна)
         int sideX = winX;
         int sideY = winY + HEADER_H;
         int sideH = winH - HEADER_H;
@@ -81,14 +80,12 @@ public class VisualScreen extends Screen {
             ctx.drawText(this.textRenderer, Text.literal(tab.label), sideX + 12, rowY + 8, textColor, false);
         }
 
-        // Контентная область (фон уже дан базовым fillRounded, ничего сверху не рисуем)
         int contentX = winX + SIDE_W;
         int contentY = winY + HEADER_H;
         int contentW = winW - SIDE_W;
         int contentH = winH - HEADER_H;
         renderTabContent(ctx, contentX, contentY, contentW, contentH, mouseX, mouseY);
 
-        // Ручка изменения размера в правом нижнем углу
         drawResizeGrip(ctx, winX + winW, winY + winH, accent);
 
         super.render(ctx, mouseX, mouseY, delta);
@@ -103,7 +100,13 @@ public class VisualScreen extends Screen {
 
     private void renderTabContent(DrawContext ctx, int x, int y, int w, int h, int mouseX, int mouseY) {
         switch (currentTab) {
-            case VISUAL -> drawPlaceholder(ctx, x, y, "Visual modules go here");
+            case VISUAL -> {
+                if (hitboxSettingsOpen) {
+                    drawHitboxSettings(ctx, x, y, w);
+                } else {
+                    drawVisual(ctx, x, y, w);
+                }
+            }
             case UTILITIES -> drawUtilities(ctx, x, y, w);
             case KEYBINDS -> drawPlaceholder(ctx, x, y, "Keybind list goes here");
             case SETTINGS -> drawThemes(ctx, x, y, w, h);
@@ -114,10 +117,98 @@ public class VisualScreen extends Screen {
         ctx.drawText(this.textRenderer, Text.literal(text), x + 10, y + 10, SourVisualConfig.getTextDimColor(), false);
     }
 
-    // ---------- UTILITIES (карточки-переключатели) ----------
+    // ---------- VISUAL ----------
 
     private static final int ROW_H = 20;
     private static final int ROW_GAP = 6;
+
+    private void drawVisual(DrawContext ctx, int x, int y, int w) {
+        int pad = 10;
+        int cx = x + pad;
+        int cy = y + pad;
+        int rowW = w - pad * 2;
+
+        int text = SourVisualConfig.getTextColor();
+        int textDim = SourVisualConfig.getTextDimColor();
+        int chip = SourVisualConfig.getChipColor();
+        int accent = SourVisualConfig.getAccentColor();
+
+        drawSwitchRow(ctx, cx, cy, rowW, "HitBox", SourVisualConfig.hitboxEnabled, chip, accent, text);
+
+        int hintY = cy + ROW_H + 8;
+        ctx.drawText(this.textRenderer, Text.literal("Right-click HitBox to configure"), cx, hintY, textDim, false);
+    }
+
+    // ---------- HITBOX SETTINGS ----------
+
+    private static final int SLIDER_W = 180;
+    private static final int SLIDER_H = 6;
+    private static final int PALETTE_SIZE = 16;
+    private static final int PALETTE_GAP = 6;
+    private static final int PALETTE_COLS = 10;
+
+    private void drawHitboxSettings(DrawContext ctx, int x, int y, int w) {
+        int pad = 10;
+        int cx = x + pad;
+        int cy = y + pad;
+        int rowW = w - pad * 2;
+
+        int text = SourVisualConfig.getTextColor();
+        int textDim = SourVisualConfig.getTextDimColor();
+        int chip = SourVisualConfig.getChipColor();
+        int chipOn = SourVisualConfig.getChipOnColor();
+        int accent = SourVisualConfig.getAccentColor();
+
+        ctx.drawText(this.textRenderer, Text.literal("< HitBox"), cx, cy, text, false);
+
+        int filledY = cy + 16;
+        drawSwitchRow(ctx, cx, filledY, rowW, "Filled", SourVisualConfig.hitboxFilled, chip, accent, text);
+
+        int colorLabelY = filledY + ROW_H + 10;
+        ctx.drawText(this.textRenderer, Text.literal("Color"), cx, colorLabelY, textDim, false);
+
+        int modeChipY = colorLabelY + 12;
+        boolean themeMode = SourVisualConfig.hitboxColorMode == SourVisualConfig.HitboxColorMode.THEME;
+        int themeChipW = this.textRenderer.getWidth("Theme") + 12;
+        int customChipW = this.textRenderer.getWidth("Custom") + 12;
+        ctx.fill(cx, modeChipY, cx + themeChipW, modeChipY + 16, themeMode ? chipOn : chip);
+        ctx.drawText(this.textRenderer, Text.literal("Theme"), cx + 6, modeChipY + 4, text, false);
+        int customChipX = cx + themeChipW + 6;
+        ctx.fill(customChipX, modeChipY, customChipX + customChipW, modeChipY + 16, !themeMode ? chipOn : chip);
+        ctx.drawText(this.textRenderer, Text.literal("Custom"), customChipX + 6, modeChipY + 4, text, false);
+
+        int nextY = modeChipY + 24;
+
+        if (!themeMode) {
+            int paletteY = nextY;
+            for (int i = 0; i < SourVisualConfig.HITBOX_PALETTE.length; i++) {
+                int col = i % PALETTE_COLS;
+                int row = i / PALETTE_COLS;
+                int px = cx + col * (PALETTE_SIZE + PALETTE_GAP);
+                int py = paletteY + row * (PALETTE_SIZE + PALETTE_GAP);
+                int swatchColor = SourVisualConfig.HITBOX_PALETTE[i];
+                ctx.fill(px, py, px + PALETTE_SIZE, py + PALETTE_SIZE, swatchColor);
+                if (SourVisualConfig.hitboxCustomColor == swatchColor) {
+                    ctx.fill(px - 2, py - 2, px + PALETTE_SIZE + 2, py - 1, text);
+                    ctx.fill(px - 2, py + PALETTE_SIZE + 1, px + PALETTE_SIZE + 2, py + PALETTE_SIZE + 2, text);
+                    ctx.fill(px - 2, py - 2, px - 1, py + PALETTE_SIZE + 2, text);
+                    ctx.fill(px + PALETTE_SIZE + 1, py - 2, px + PALETTE_SIZE + 2, py + PALETTE_SIZE + 2, text);
+                }
+            }
+            int rows = (SourVisualConfig.HITBOX_PALETTE.length + PALETTE_COLS - 1) / PALETTE_COLS;
+            nextY = paletteY + rows * (PALETTE_SIZE + PALETTE_GAP) + 6;
+        }
+
+        ctx.drawText(this.textRenderer, Text.literal("Opacity"), cx, nextY, textDim, false);
+        int sliderY = nextY + 12;
+        ctx.fill(cx, sliderY, cx + SLIDER_W, sliderY + SLIDER_H, chip);
+        int filled = (int) (SLIDER_W * (SourVisualConfig.hitboxOpacity / 100.0));
+        ctx.fill(cx, sliderY, cx + filled, sliderY + SLIDER_H, accent);
+        String pct = SourVisualConfig.hitboxOpacity + "%";
+        ctx.drawText(this.textRenderer, Text.literal(pct), cx + SLIDER_W + 8, sliderY - 2, text, false);
+    }
+
+    // ---------- UTILITIES ----------
 
     private void drawUtilities(DrawContext ctx, int x, int y, int w) {
         int pad = 10;
@@ -204,7 +295,6 @@ public class VisualScreen extends Screen {
         int winW = SourVisualConfig.winW;
         int winH = SourVisualConfig.winH;
 
-        // Ручка ресайза — проверяем первой
         int gripX = winX + winW - RESIZE_GRIP;
         int gripY = winY + winH - RESIZE_GRIP;
         if (mouseX >= gripX && mouseX <= winX + winW && mouseY >= gripY && mouseY <= winY + winH) {
@@ -229,6 +319,16 @@ public class VisualScreen extends Screen {
             }
         }
 
+        if (currentTab == Tab.VISUAL) {
+            if (hitboxSettingsOpen) {
+                if (handleHitboxSettingsClick((int) mouseX, (int) mouseY, button)) {
+                    return true;
+                }
+            } else if (handleVisualClick((int) mouseX, (int) mouseY, button)) {
+                return true;
+            }
+        }
+
         if (currentTab == Tab.SETTINGS) {
             if (handleThemesClick((int) mouseX, (int) mouseY)) {
                 return true;
@@ -241,7 +341,6 @@ public class VisualScreen extends Screen {
             }
         }
 
-        // Начало драга вотермарки
         int wx = Watermark.lastX, wy = Watermark.lastY, ww = Watermark.lastW, wh = Watermark.lastH;
         if (mouseX >= wx && mouseX <= wx + ww && mouseY >= wy && mouseY <= wy + wh) {
             draggingWatermark = true;
@@ -269,18 +368,116 @@ public class VisualScreen extends Screen {
             SourVisualConfig.wmY = (int) mouseY - dragOffY;
             return true;
         }
+        if (draggingOpacitySlider) {
+            updateOpacityFromMouse((int) mouseX);
+            return true;
+        }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        boolean wasActive = resizing || draggingWatermark;
+        boolean wasActive = resizing || draggingWatermark || draggingOpacitySlider;
         resizing = false;
         draggingWatermark = false;
+        draggingOpacitySlider = false;
         if (wasActive) {
             return true;
         }
         return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    private boolean handleVisualClick(int mouseX, int mouseY, int button) {
+        int pad = 10;
+        int x = winX + SIDE_W;
+        int y = winY + HEADER_H;
+        int cx = x + pad;
+        int cy = y + pad;
+        int rowW = (SourVisualConfig.winW - SIDE_W) - pad * 2;
+
+        if (hitRow(mouseX, mouseY, cx, cy, rowW)) {
+            if (button == 1) {
+                hitboxSettingsOpen = true;
+            } else {
+                SourVisualConfig.hitboxEnabled = !SourVisualConfig.hitboxEnabled;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleHitboxSettingsClick(int mouseX, int mouseY, int button) {
+        int pad = 10;
+        int x = winX + SIDE_W;
+        int y = winY + HEADER_H;
+        int cx = x + pad;
+        int cy = y + pad;
+        int rowW = (SourVisualConfig.winW - SIDE_W) - pad * 2;
+
+        // Кнопка "назад"
+        if (mouseX >= cx && mouseX <= cx + 60 && mouseY >= cy - 2 && mouseY <= cy + 10) {
+            hitboxSettingsOpen = false;
+            return true;
+        }
+
+        int filledY = cy + 16;
+        if (hitRow(mouseX, mouseY, cx, filledY, rowW)) {
+            SourVisualConfig.hitboxFilled = !SourVisualConfig.hitboxFilled;
+            return true;
+        }
+
+        int colorLabelY = filledY + ROW_H + 10;
+        int modeChipY = colorLabelY + 12;
+        int themeChipW = this.textRenderer.getWidth("Theme") + 12;
+        int customChipW = this.textRenderer.getWidth("Custom") + 12;
+
+        if (mouseX >= cx && mouseX <= cx + themeChipW && mouseY >= modeChipY && mouseY <= modeChipY + 16) {
+            SourVisualConfig.hitboxColorMode = SourVisualConfig.HitboxColorMode.THEME;
+            return true;
+        }
+        int customChipX = cx + themeChipW + 6;
+        if (mouseX >= customChipX && mouseX <= customChipX + customChipW && mouseY >= modeChipY && mouseY <= modeChipY + 16) {
+            SourVisualConfig.hitboxColorMode = SourVisualConfig.HitboxColorMode.CUSTOM;
+            return true;
+        }
+
+        int nextY = modeChipY + 24;
+        boolean themeMode = SourVisualConfig.hitboxColorMode == SourVisualConfig.HitboxColorMode.THEME;
+
+        if (!themeMode) {
+            int paletteY = nextY;
+            for (int i = 0; i < SourVisualConfig.HITBOX_PALETTE.length; i++) {
+                int col = i % PALETTE_COLS;
+                int row = i / PALETTE_COLS;
+                int px = cx + col * (PALETTE_SIZE + PALETTE_GAP);
+                int py = paletteY + row * (PALETTE_SIZE + PALETTE_GAP);
+                if (mouseX >= px && mouseX <= px + PALETTE_SIZE && mouseY >= py && mouseY <= py + PALETTE_SIZE) {
+                    SourVisualConfig.hitboxCustomColor = SourVisualConfig.HITBOX_PALETTE[i];
+                    return true;
+                }
+            }
+            int rows = (SourVisualConfig.HITBOX_PALETTE.length + PALETTE_COLS - 1) / PALETTE_COLS;
+            nextY = paletteY + rows * (PALETTE_SIZE + PALETTE_GAP) + 6;
+        }
+
+        int sliderY = nextY + 12;
+        if (mouseX >= cx - 4 && mouseX <= cx + SLIDER_W + 4
+                && mouseY >= sliderY - 4 && mouseY <= sliderY + SLIDER_H + 4) {
+            draggingOpacitySlider = true;
+            updateOpacityFromMouse(mouseX);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void updateOpacityFromMouse(int mouseX) {
+        int pad = 10;
+        int cx = winX + SIDE_W + pad;
+        int rel = mouseX - cx;
+        double pct = (double) rel / SLIDER_W;
+        pct = Math.max(0.0, Math.min(1.0, pct));
+        SourVisualConfig.hitboxOpacity = (int) Math.round(pct * 100);
     }
 
     private boolean handleUtilitiesClick(int mouseX, int mouseY) {
@@ -309,37 +506,4 @@ public class VisualScreen extends Screen {
         return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + ROW_H;
     }
 
-    private boolean handleThemesClick(int mouseX, int mouseY) {
-        int pad = 10;
-        int x = winX + SIDE_W;
-        int y = winY + HEADER_H;
-        int cx = x + pad;
-        int cy = y + pad;
-        int gridY = cy + 14;
-
-        SourVisualConfig.ThemePreset[] themes = SourVisualConfig.THEMES;
-        for (int i = 0; i < themes.length; i++) {
-            int col = i % THEME_COLS;
-            int row = i / THEME_COLS;
-            int cellX = cx + col * (THEME_CELL_W + THEME_CELL_GAP);
-            int cellY = gridY + row * THEME_ROW_H;
-
-            if (mouseX >= cellX && mouseX <= cellX + THEME_CELL_W
-                    && mouseY >= cellY && mouseY <= cellY + THEME_ROW_H - 4) {
-                SourVisualConfig.selectedThemeIndex = i;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean shouldPause() {
-        return false;
-    }
-
-    @Override
-    public boolean shouldCloseOnEsc() {
-        return true;
-    }
-                   }
+    private boolean handleThemesClick(int mo

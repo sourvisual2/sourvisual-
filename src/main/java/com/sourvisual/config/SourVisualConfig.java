@@ -42,9 +42,8 @@ public class SourVisualConfig {
     public static final int MAX_WIN_W = 600;
     public static final int MAX_WIN_H = 450;
 
-    // Fullbright (Utilities)
+    // Fullbright (Utilities) — простой переключатель, без слайдера
     public static boolean fullbrightEnabled = false;
-    public static int fullbrightValue = 100; // 0-100 %
 
     // ---------- Цвета интерфейса, производные от выбранной темы ----------
 
@@ -104,4 +103,4 @@ public class SourVisualConfig {
     }
 
     private SourVisualConfig() {}
-}
+                }

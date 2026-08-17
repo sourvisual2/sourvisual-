@@ -12,6 +12,10 @@ public class SourVisualConfig {
         }
     }
 
+    public enum HitboxColorMode {
+        THEME, CUSTOM
+    }
+
     // Готовые цветовые темы визуала
     public static final ThemePreset[] THEMES = {
             new ThemePreset("Galaxy",   0xFF8A5CFF),
@@ -42,8 +46,25 @@ public class SourVisualConfig {
     public static final int MAX_WIN_W = 600;
     public static final int MAX_WIN_H = 450;
 
-    // Fullbright (Utilities) — простой переключатель, без слайдера
+    // Fullbright (Utilities)
     public static boolean fullbrightEnabled = false;
+
+    // HitBox (Visual)
+    public static boolean hitboxEnabled = false;
+    public static boolean hitboxFilled = false;
+    public static HitboxColorMode hitboxColorMode = HitboxColorMode.THEME;
+    public static int hitboxCustomColor = 0xFFFF5555;
+    public static int hitboxOpacity = 40; // 0-100 %, только для заливки
+
+    public static final int[] HITBOX_PALETTE = {
+            0xFFFF5555, 0xFFFF9F45, 0xFFE0D34D, 0xFF3ECF8E,
+            0xFF5CC8FF, 0xFF3B6FE0, 0xFFB05CFF, 0xFFFF6BC1,
+            0xFFFFFFFF, 0xFF2A2A2A,
+    };
+
+    public static int getHitboxColor() {
+        return hitboxColorMode == HitboxColorMode.THEME ? getAccentColor() : hitboxCustomColor;
+    }
 
     // ---------- Цвета интерфейса, производные от выбранной темы ----------
 
@@ -103,4 +124,4 @@ public class SourVisualConfig {
     }
 
     private SourVisualConfig() {}
-                }
+}

@@ -2,22 +2,31 @@ package com.sourvisual.config;
 
 public class SourVisualConfig {
 
-    public enum Theme {
-        WHITE, DARK, DARK_PLUS, PEACH, CUSTOM
+    public static class ThemePreset {
+        public final String name;
+        public final int color;
+
+        public ThemePreset(String name, int color) {
+            this.name = name;
+            this.color = color;
+        }
     }
 
-    public enum RgbMode {
-        RADIAL, SPHERE, METRIC
-    }
+    // Готовые цветовые темы визуала
+    public static final ThemePreset[] THEMES = {
+            new ThemePreset("Galaxy",   0xFF8A5CFF),
+            new ThemePreset("Crystal",  0xFF5CC8FF),
+            new ThemePreset("Emerald",  0xFF3ECF8E),
+            new ThemePreset("Amethyst", 0xFFB05CFF),
+            new ThemePreset("Ruby",     0xFFFF4D6D),
+            new ThemePreset("Sunset",   0xFFFF9F45),
+            new ThemePreset("Ocean",    0xFF1E90A8),
+            new ThemePreset("Gold",     0xFFE0B94D),
+            new ThemePreset("Midnight", 0xFF2A3F8F),
+            new ThemePreset("Coral",    0xFFFF7F6B),
+    };
 
-    // Темы
-    public static Theme theme = Theme.DARK_PLUS;
-
-    // Кастомные цвета (два свотча, как на скрине настроек)
-    public static int color1R = 61,  color1G = 112, color1B = 250;
-    public static int color2R = 184, color2G = 56,  color2B = 245;
-
-    public static RgbMode rgbMode = RgbMode.METRIC;
+    public static int selectedThemeIndex = 0;
 
     // Вотермарка: только ник, FPS, время
     public static boolean wmEnabled = true;
@@ -33,95 +42,61 @@ public class SourVisualConfig {
     public static final int MAX_WIN_W = 600;
     public static final int MAX_WIN_H = 450;
 
-    // ---------- Цвета по темам ----------
+    // Fullbright (Utilities)
+    public static boolean fullbrightEnabled = false;
+    public static int fullbrightValue = 100; // 0-100 %
+
+    // ---------- Цвета интерфейса, производные от выбранной темы ----------
 
     public static int getAccentColor() {
-        return switch (theme) {
-            case WHITE -> 0xFF3B6FE0;
-            case DARK -> 0xFF7C5CFF;
-            case DARK_PLUS -> 0xFF7C5CFF;
-            case PEACH -> 0xFFFFB199;
-            case CUSTOM -> 0xFF000000 | (color1R << 16) | (color1G << 8) | color1B;
-        };
-    }
-
-    public static int getSecondaryColor() {
-        return 0xFF000000 | (color2R << 16) | (color2G << 8) | color2B;
+        return THEMES[selectedThemeIndex].color;
     }
 
     public static int getBgColor() {
-        return switch (theme) {
-            case WHITE -> 0xF0F2F2F5;
-            case DARK -> 0xF01B1B1F;
-            case DARK_PLUS -> 0xF0141414;
-            case PEACH -> 0xF02B1F1B;
-            case CUSTOM -> darken(color2R, color2G, color2B, 0.14f, 0xF0);
-        };
+        return darken(getAccentColor(), 0.10f, 0xF0);
     }
 
     public static int getHeaderColor() {
-        return switch (theme) {
-            case WHITE -> 0xF0E4E4E8;
-            case DARK -> 0xF0242429;
-            case DARK_PLUS -> 0xF01B1B1B;
-            case PEACH -> 0xF03A2A24;
-            case CUSTOM -> darken(color2R, color2G, color2B, 0.22f, 0xF0);
-        };
+        return darken(getAccentColor(), 0.16f, 0xF0);
     }
 
     public static int getSideColor() {
-        return switch (theme) {
-            case WHITE -> 0xF0E9E9ED;
-            case DARK -> 0xF0202024;
-            case DARK_PLUS -> 0xF0181818;
-            case PEACH -> 0xF0332521;
-            case CUSTOM -> darken(color2R, color2G, color2B, 0.18f, 0xF0);
-        };
-    }
-
-    public static int getTextColor() {
-        return switch (theme) {
-            case WHITE -> 0xFF1C1C1C;
-            case DARK -> 0xFFE0E0E0;
-            case DARK_PLUS -> 0xFFE0E0E0;
-            case PEACH -> 0xFFFCEAE0;
-            case CUSTOM -> 0xFFF0F0F0;
-        };
-    }
-
-    public static int getTextDimColor() {
-        return switch (theme) {
-            case WHITE -> 0xFF6E6E6E;
-            case DARK -> 0xFF8A8A8A;
-            case DARK_PLUS -> 0xFF8A8A8A;
-            case PEACH -> 0xFFC9A79A;
-            case CUSTOM -> 0xFFAAAAAA;
-        };
+        return darken(getAccentColor(), 0.13f, 0xF0);
     }
 
     public static int getChipColor() {
-        return switch (theme) {
-            case WHITE -> 0xFFD5D5DA;
-            case DARK -> 0xFF2A2A2F;
-            case DARK_PLUS -> 0xFF232323;
-            case PEACH -> 0xFF3F2E28;
-            case CUSTOM -> darken(color2R, color2G, color2B, 0.30f, 0xFF);
-        };
+        return darken(getAccentColor(), 0.22f, 0xFF);
     }
 
     public static int getChipOnColor() {
-        int acc = getAccentColor();
-        int r = (acc >> 16) & 0xFF;
-        int g = (acc >> 8) & 0xFF;
-        int b = acc & 0xFF;
-        return darken(r, g, b, 0.55f, 0xFF);
+        return darken(getAccentColor(), 0.45f, 0xFF);
     }
 
-    private static int darken(int r, int g, int b, float factor, int alphaByte) {
+    public static int getTextColor() {
+        return 0xFFF0F0F0;
+    }
+
+    public static int getTextDimColor() {
+        return blend(getAccentColor(), 0xFFAAAAAA, 0.3f);
+    }
+
+    private static int darken(int color, float factor, int alphaByte) {
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
         int nr = Math.round(r * factor);
         int ng = Math.round(g * factor);
         int nb = Math.round(b * factor);
         return (alphaByte << 24) | (clamp(nr) << 16) | (clamp(ng) << 8) | clamp(nb);
+    }
+
+    private static int blend(int colorA, int colorB, float weightA) {
+        int ar = (colorA >> 16) & 0xFF, ag = (colorA >> 8) & 0xFF, ab = colorA & 0xFF;
+        int br = (colorB >> 16) & 0xFF, bg = (colorB >> 8) & 0xFF, bb = colorB & 0xFF;
+        int nr = Math.round(ar * weightA + br * (1 - weightA));
+        int ng = Math.round(ag * weightA + bg * (1 - weightA));
+        int nb = Math.round(ab * weightA + bb * (1 - weightA));
+        return 0xFF000000 | (clamp(nr) << 16) | (clamp(ng) << 8) | clamp(nb);
     }
 
     private static int clamp(int v) {
@@ -129,4 +104,4 @@ public class SourVisualConfig {
     }
 
     private SourVisualConfig() {}
-        }
+}

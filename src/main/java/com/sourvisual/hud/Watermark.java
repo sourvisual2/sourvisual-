@@ -4,12 +4,14 @@ import com.sourvisual.config.SourVisualConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 public class Watermark {
 
+    private static final Identifier FONT = Identifier.of("sourvisual", "vcr_osd_mono");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     // Последние отрисованные границы — нужны для хит-теста драга в VisualScreen
@@ -38,7 +40,7 @@ public class Watermark {
 
         ctx.fill(x, y, x + w, y + h, 0x80000000);
         ctx.drawText(client.textRenderer,
-                Text.literal(line),
+                Text.literal(line).setStyle(Text.empty().getStyle().withFont(FONT)),
                 x + 4, y + 3, 0xFFFFFFFF, true);
     }
 }

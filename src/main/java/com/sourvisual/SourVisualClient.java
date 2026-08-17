@@ -1,6 +1,5 @@
 package com.sourvisual;
 
-import com.sourvisual.config.SourVisualConfig;
 import com.sourvisual.gui.VisualScreen;
 import com.sourvisual.hud.Watermark;
 import net.fabricmc.api.ClientModInitializer;
@@ -15,9 +14,6 @@ import org.lwjgl.glfw.GLFW;
 public class SourVisualClient implements ClientModInitializer {
 
     private static KeyBinding toggleMenuKey;
-
-    // Сохранённое значение гаммы игрока, чтобы вернуть его при выключении fullbright
-    private static Double savedGamma = null;
 
     @Override
     public void onInitializeClient() {
@@ -36,26 +32,9 @@ public class SourVisualClient implements ClientModInitializer {
                     client.setScreen(new VisualScreen());
                 }
             }
-
-            applyFullbright(client);
         });
 
         HudRenderCallback.EVENT.register((drawContext, tickDelta) ->
                 Watermark.render(drawContext, MinecraftClient.getInstance()));
-    }
-
-    private void applyFullbright(MinecraftClient client) {
-        if (SourVisualConfig.fullbrightEnabled) {
-            if (savedGamma == null) {
-                savedGamma = client.options.getGamma().getValue();
-            }
-            double target = SourVisualConfig.fullbrightValue / 100.0;
-            if (!client.options.getGamma().getValue().equals(target)) {
-                client.options.getGamma().setValue(target);
-            }
-        } else if (savedGamma != null) {
-            client.options.getGamma().setValue(savedGamma);
-            savedGamma = null;
-        }
     }
 }

@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter;
 
 public class Watermark {
 
-    private static final Identifier FONT = Identifier.of("sourvisual", "vcr_osd_mono");
+    private static final Identifier FONT = Identifier.of("sourvisual", "minecraftia");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     // Последние отрисованные границы — нужны для хит-теста драга в VisualScreen
@@ -23,7 +23,6 @@ public class Watermark {
 
         String nick = client.getSession().getUsername();
         int fps = client.getCurrentFps();
-        // Если у тебя другой mappings-геттер FPS, замени client.getCurrentFps()
         String time = LocalTime.now().format(TIME_FMT);
 
         String line = nick + "  |  " + fps + " fps  |  " + time;

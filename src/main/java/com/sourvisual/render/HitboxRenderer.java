@@ -78,11 +78,12 @@ public class HitboxRenderer {
                               float x3, float y3, float z3,
                               float x4, float y4, float z4,
                               float r, float g, float b, float a) {
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).next();
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).next();
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).next();
-        consumer.vertex(matrix, x4, y4, z4).color(r, g, b, a).next();
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a);
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a);
+        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a);
+        consumer.vertex(matrix, x4, y4, z4).color(r, g, b, a);
     }
 
     private HitboxRenderer() {}
+}
           }

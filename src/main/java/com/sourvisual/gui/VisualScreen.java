@@ -20,6 +20,9 @@ public class VisualScreen extends Screen {
     private boolean draggingWatermark = false;
     private int dragOffX, dragOffY;
 
+    private boolean draggingMenu = false;
+    private int menuDragOffX, menuDragOffY;
+
     private boolean resizing = false;
     private int resizeStartMouseX, resizeStartMouseY;
     private int resizeStartW, resizeStartH;
@@ -341,6 +344,15 @@ public class VisualScreen extends Screen {
             }
         }
 
+        // Перетаскивание всего меню за шапку
+        if (mouseX >= winX && mouseX <= winX + winW && mouseY >= winY && mouseY <= winY + HEADER_H) {
+            draggingMenu = true;
+            menuDragOffX = (int) mouseX - winX;
+            menuDragOffY = (int) mouseY - winY;
+            return true;
+        }
+
+        // Начало драга вотермарки
         int wx = Watermark.lastX, wy = Watermark.lastY, ww = Watermark.lastW, wh = Watermark.lastH;
         if (mouseX >= wx && mouseX <= wx + ww && mouseY >= wy && mouseY <= wy + wh) {
             draggingWatermark = true;
@@ -363,6 +375,11 @@ public class VisualScreen extends Screen {
             SourVisualConfig.winH = newH;
             return true;
         }
+        if (draggingMenu) {
+            winX = (int) mouseX - menuDragOffX;
+            winY = (int) mouseY - menuDragOffY;
+            return true;
+        }
         if (draggingWatermark) {
             SourVisualConfig.wmX = (int) mouseX - dragOffX;
             SourVisualConfig.wmY = (int) mouseY - dragOffY;
@@ -377,8 +394,9 @@ public class VisualScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        boolean wasActive = resizing || draggingWatermark || draggingOpacitySlider;
+        boolean wasActive = resizing || draggingMenu || draggingWatermark || draggingOpacitySlider;
         resizing = false;
+        draggingMenu = false;
         draggingWatermark = false;
         draggingOpacitySlider = false;
         if (wasActive) {
@@ -414,7 +432,6 @@ public class VisualScreen extends Screen {
         int cy = y + pad;
         int rowW = (SourVisualConfig.winW - SIDE_W) - pad * 2;
 
-        // Кнопка "назад"
         if (mouseX >= cx && mouseX <= cx + 60 && mouseY >= cy - 2 && mouseY <= cy + 10) {
             hitboxSettingsOpen = false;
             return true;
@@ -488,22 +505,4 @@ public class VisualScreen extends Screen {
         int cy = y + pad;
         int rowW = (SourVisualConfig.winW - SIDE_W) - pad * 2;
 
-        if (hitRow(mouseX, mouseY, cx, cy, rowW)) {
-            SourVisualConfig.fullbrightEnabled = !SourVisualConfig.fullbrightEnabled;
-            return true;
-        }
-
-        int row2Y = cy + (ROW_H + ROW_GAP);
-        if (hitRow(mouseX, mouseY, cx, row2Y, rowW)) {
-            SourVisualConfig.wmEnabled = !SourVisualConfig.wmEnabled;
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean hitRow(int mouseX, int mouseY, int x, int y, int w) {
-        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + ROW_H;
-    }
-
-    private boolean handleThemesClick(int mo
+    
